@@ -1,5 +1,5 @@
 use super::common::*;
-use serde_derive::{Deserialize, Serialize};
+use serde::{Deserialize, Serialize};
 use std::fs;
 
 #[derive(Debug, Serialize, Deserialize, Eq, PartialEq, Clone)]

@@ -1,8 +1,7 @@
 use core::fmt;
 use regex::Regex;
 use serde::de::Visitor;
-use serde::{de, ser};
-use serde_derive::{Deserialize, Serialize};
+use serde::{de, ser, Deserialize, Serialize};
 use std::hash::{Hash, Hasher};
 use std::str::FromStr;
 

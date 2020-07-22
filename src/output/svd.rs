@@ -1,6 +1,6 @@
 use crate::input::common::HexSerde;
 use crate::input::svd as input_svd;
-use serde_derive::Serialize;
+use serde::Serialize;
 
 use crate::input::common::{
     AccessType, EnumeratedValuesUsage, ModifiedWriteValues, ReadAction, WriteConstraint,

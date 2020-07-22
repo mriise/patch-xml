@@ -1,17 +1,14 @@
 [package]
 name = "patch-svd"
-version = "0.0.1"
+version = "0.0.2"
 authors = ["Alexander Huymayer"]
 edition = "2018"
-description = "With patch-svd you can read SVD files from microcontroller manufacturers and correct them with corresponding configurations files. A comfortable datastructure is provided for further processing afterwards."
+description = "With patch-svd you can read SVD files from microcontroller manufacturers and correct them with corresponding configurations files. A comfortable datastructure is provided for further processing afterwards. Pre-alpha version. No stable interface till version 0.1.0."
 license = "MIT OR Apache-2.0"
 
 [dependencies]
 itertools = "0.9.*"
 regex = "1.3.*"
-serde = "1.0.*"
-serde_derive = "1.0.*"
-serde_regex = "1.1.*"
+serde = { version = "1.0.*", features = ["derive"] }
 serde_yaml = "0.8.*"
 serde-xml-rs = "0.4.*"
-tinytemplate = "1.1.*"
