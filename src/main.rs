@@ -1,4 +1,5 @@
 pub mod input;
+pub mod output;
 
 use input::config::Config;
 use input::svd::Svd;

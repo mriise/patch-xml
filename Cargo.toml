@@ -1,9 +1,9 @@
 [package]
 name = "patch-svd"
-version = "0.0.2"
+version = "0.0.3"
 authors = ["Alexander Huymayer"]
 edition = "2018"
-description = "With patch-svd you can read SVD files from microcontroller manufacturers and correct them with corresponding configurations files. A comfortable datastructure is provided for further processing afterwards. Pre-alpha version. No stable interface till version 0.1.0."
+description = "Load and patch svd files. Pre-alpha version. No stable interface until version 0.1.0."
 license = "MIT OR Apache-2.0"
 
 [dependencies]

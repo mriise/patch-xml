@@ -1,6 +1,8 @@
-use super::common::*;
 use serde::{Deserialize, Serialize};
 use std::fs;
+use crate::output::{
+    AccessType, EnumeratedValuesUsage, ModifiedWriteValues, ReadAction, WriteConstraint, HexSerde
+};
 
 #[derive(Debug, Serialize, Deserialize, Eq, PartialEq, Clone)]
 pub struct Svd {

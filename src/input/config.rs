@@ -1,5 +1,5 @@
-use super::common::*;
-use super::{svd, svd::Svd};
+use crate::output;
+use super::svd as input;
 use serde::{Deserialize, Serialize};
 use std::collections::HashMap;
 use std::fs;
@@ -12,12 +12,12 @@ pub struct Config {
 
 #[derive(Debug, Serialize, Deserialize, Eq, PartialEq)]
 pub struct Device {
-    pub peripherals: HashMap<RegExStruct, Peripheral>,
+    pub peripherals: HashMap<output::RegExStruct, Peripheral>,
 }
 
 #[derive(Debug, Serialize, Deserialize, Eq, PartialEq)]
 pub struct Peripheral {
-    pub patch_type: Option<PatchType>,
+    pub patch_type: Option<output::PatchType>,
     pub derived_from: Option<String>,
     pub version: Option<String>,
     pub description: Option<String>,
@@ -26,46 +26,46 @@ pub struct Peripheral {
     pub append_to_name: Option<String>,
     pub disable_condition: Option<String>,
     #[serde(flatten)]
-    pub registers: HashMap<RegExStruct, Register>,
+    pub registers: HashMap<output::RegExStruct, Register>,
 }
 
 #[derive(Debug, Serialize, Deserialize, Eq, PartialEq)]
 pub struct Register {
-    pub patch_type: Option<PatchType>,
+    pub patch_type: Option<output::PatchType>,
     pub derived_from: Option<String>,
     pub display_name: Option<String>,
     pub description: Option<String>,
-    pub access: Option<AccessType>,
+    pub access: Option<output::AccessType>,
     pub alternate_group: Option<String>,
     pub address_offset: Option<u32>,
-    pub modified_write_values: Option<ModifiedWriteValues>,
-    pub write_constraint: Option<WriteConstraint>,
-    pub read_action: Option<ReadAction>,
+    pub modified_write_values: Option<output::ModifiedWriteValues>,
+    pub write_constraint: Option<output::WriteConstraint>,
+    pub read_action: Option<output::ReadAction>,
     #[serde(flatten)]
-    pub fields: HashMap<RegExStruct, Field>,
+    pub fields: HashMap<output::RegExStruct, Field>,
 }
 
 #[derive(Debug, Serialize, Deserialize, Eq, PartialEq)]
 #[serde(rename_all = "camelCase")]
 pub struct Field {
-    pub patch_type: Option<PatchType>,
+    pub patch_type: Option<output::PatchType>,
     pub derived_from: Option<String>,
     pub description: Option<String>,
-    pub access: Option<AccessType>,
-    pub modified_write_values: Option<ModifiedWriteValues>,
-    pub write_constraint: Option<WriteConstraint>,
-    pub read_action: Option<ReadAction>,
+    pub access: Option<output::AccessType>,
+    pub modified_write_values: Option<output::ModifiedWriteValues>,
+    pub write_constraint: Option<output::WriteConstraint>,
+    pub read_action: Option<output::ReadAction>,
     pub enumerated_values: Option<EnumeratedValues>,
     pub enumerated_values2: Option<EnumeratedValues>,
 }
 
 #[derive(Debug, Serialize, Deserialize, Eq, PartialEq)]
 pub struct EnumeratedValues {
-    pub _patch_type: Option<PatchType>,
+    pub _patch_type: Option<output::PatchType>,
     pub name: Option<String>,
     pub derived_from: Option<String>,
-    pub usage: Option<EnumeratedValuesUsage>,
-    pub enumerated_value: HashMap<RegExStruct, EnumeratedValue>,
+    pub usage: Option<output::EnumeratedValuesUsage>,
+    pub enumerated_value: HashMap<output::RegExStruct, EnumeratedValue>,
 }
 
 #[derive(Debug, Serialize, Deserialize, Eq, PartialEq)]
@@ -86,7 +86,7 @@ impl Config {
         )
         .expect("Error while parsing configuration file")
     }
-    pub fn merge_into(&self, svd: &mut Svd) {
+    pub fn merge_into(&self, svd: &mut input::Svd) {
         for (peripheral_name, peripherals) in &self.device.peripherals {
             for svd_peripheral in &mut svd.device.peripherals.peripheral {
                 if peripheral_name.regex.is_match(&svd_peripheral.name) {
@@ -98,7 +98,7 @@ impl Config {
 }
 
 impl EnumeratedValue {
-    pub fn merge_into(&self, svd_enum_value: &mut svd::EnumeratedValue) {
+    pub fn merge_into(&self, svd_enum_value: &mut input::EnumeratedValue) {
         //Create
         let (value, description, is_default) = match self {
             EnumeratedValue::Value(v) => (Some(v.clone()), None, false),
@@ -134,7 +134,7 @@ macro_rules! merge_property {
 }
 
 impl Peripheral {
-    pub fn merge_into(&self, svd_peripheral: &mut svd::Peripheral) {
+    pub fn merge_into(&self, svd_peripheral: &mut input::Peripheral) {
         merge_option_property! {self, svd_peripheral, derived_from}
         merge_option_property! {self, svd_peripheral, version}
         merge_option_property! {self, svd_peripheral, description}
@@ -155,7 +155,7 @@ impl Peripheral {
 }
 
 impl Register {
-    pub fn merge_into(&self, svd_register: &mut svd::Register) {
+    pub fn merge_into(&self, svd_register: &mut input::Register) {
         merge_property! {self, svd_register, display_name}
         merge_property! {self, svd_register, description}
         merge_option_property! {self, svd_register, access}
@@ -176,7 +176,7 @@ impl Register {
 }
 
 impl Field {
-    pub fn merge_into(&self, svd_field: &mut svd::Field) {
+    pub fn merge_into(&self, svd_field: &mut input::Field) {
         merge_option_property! {self, svd_field, derived_from}
         merge_option_property! {self, svd_field, description}
         merge_option_property! {self, svd_field, access}
@@ -185,7 +185,7 @@ impl Field {
         merge_option_property! {self, svd_field, read_action}
         if self.enumerated_values.is_some() {
             if svd_field.enumerated_values.is_none() {
-                svd_field.enumerated_values = Some(svd::EnumeratedValues::new());
+                svd_field.enumerated_values = Some(input::EnumeratedValues::new());
             }
             let svd_enumerated_values = svd_field.enumerated_values.as_mut().unwrap();
             self.enumerated_values
@@ -195,7 +195,7 @@ impl Field {
         }
         if self.enumerated_values2.is_some() {
             if svd_field.enumerated_values2.is_none() {
-                svd_field.enumerated_values2 = Some(svd::EnumeratedValues::new());
+                svd_field.enumerated_values2 = Some(input::EnumeratedValues::new());
             }
             let svd_enumerated_values2 = svd_field.enumerated_values2.as_mut().unwrap();
             self.enumerated_values2
@@ -207,7 +207,7 @@ impl Field {
 }
 
 impl EnumeratedValues {
-    pub fn merge_into(&self, svd_enum_values: &mut svd::EnumeratedValues) {
+    pub fn merge_into(&self, svd_enum_values: &mut input::EnumeratedValues) {
         merge_option_property!(self, svd_enum_values, name);
         merge_option_property!(self, svd_enum_values, derived_from);
         merge_option_property!(self, svd_enum_values, usage);
