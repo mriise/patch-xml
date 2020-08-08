@@ -15,7 +15,7 @@ fn main() {
         std::process::exit(1);
     }
     let yaml_path = args.get(1).unwrap();
-    let result_path = args.get(2).unwrap();
+    let _result_path = args.get(2).unwrap();
     let base_conf_path = std::path::Path::new(yaml_path)
         .parent()
         .expect("Expected configuration file in a directory.")
@@ -31,5 +31,5 @@ fn main() {
     yaml.merge_into(&mut svd);
     //Serialization support of serde-xml-rs does not support current structure
     //  Maybe changing to another xml-serde library...
-    svd.write(result_path);
+    //svd.write(result_path);
 }

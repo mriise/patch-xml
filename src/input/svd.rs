@@ -1,8 +1,9 @@
+use crate::output::{
+    AccessType, EndianType, EnumeratedValuesUsage, Interrupt, ModifiedWriteValues, Protection,
+    ReadAction, SvdConstant, WriteConstraint,
+};
 use serde::{Deserialize, Serialize};
 use std::fs;
-use crate::output::{
-    AccessType, EnumeratedValuesUsage, ModifiedWriteValues, ReadAction, WriteConstraint, HexSerde
-};
 
 #[derive(Debug, Serialize, Deserialize, Eq, PartialEq, Clone)]
 pub struct Svd {
@@ -11,19 +12,43 @@ pub struct Svd {
 
 #[derive(Debug, Serialize, Deserialize, Eq, PartialEq, Clone)]
 #[serde(rename_all = "camelCase")]
+pub struct RegisterPropertiesGroup {
+    pub size: Option<NestedSvdConstant>,
+    pub access: Option<AccessType>,
+    pub protection: Option<Protection>,
+    pub reset_value: Option<NestedSvdConstant>,
+    pub reset_mask: Option<NestedSvdConstant>,
+}
+
+#[derive(Debug, Serialize, Deserialize, Eq, PartialEq, Clone)]
+#[serde(rename_all = "camelCase")]
+pub struct SauRegionsConfigType {
+    pub enabled: Option<bool>,
+    pub name: Option<String>,
+    #[serde(with = "SvdConstant")]
+    pub base: u32,
+    #[serde(with = "SvdConstant")]
+    pub limit: u32,
+    pub access: String,
+}
+
+#[derive(Debug, Serialize, Deserialize, Eq, PartialEq, Clone)]
+#[serde(rename_all = "camelCase")]
 pub struct Device {
+    pub vendor: Option<String>,
+    pub vendor_id: Option<String>,
     pub name: String,
+    pub series: Option<String>,
     pub version: String,
     pub description: String,
+    pub license_text: Option<String>,
+    pub cpu: Cpu,
+    pub header_system_filename: Option<String>,
+    pub header_definition_prefix: Option<String>,
     pub address_unit_bits: u32,
     pub width: u32,
-    #[serde(with = "HexSerde")]
-    pub size: u32,
-    #[serde(with = "HexSerde")]
-    pub reset_value: u32,
-    #[serde(with = "HexSerde")]
-    pub reset_mask: u32,
-    pub cpu: Cpu,
+    #[serde(flatten)]
+    pub register_properties: RegisterPropertiesGroup,
     pub peripherals: Peripherals,
 }
 
@@ -32,18 +57,22 @@ pub struct Device {
 pub struct Cpu {
     pub name: String,
     pub revision: String,
-    pub endian: Endian,
+    pub endian: EndianType,
     pub mpu_present: bool,
     pub fpu_present: bool,
+    pub fpu_d_p: Option<bool>,
+    pub dsp_present: Option<bool>,
+    pub icache_present: Option<bool>,
+    pub dcache_present: Option<bool>,
+    pub itcm_present: Option<bool>,
+    pub dtcm_present: Option<bool>,
+    pub vtor_present: Option<bool>,
+    #[serde(with = "SvdConstant")]
     pub nvic_prio_bits: u32,
     pub vendor_systick_config: bool,
-}
-
-#[derive(Debug, Serialize, Deserialize, Eq, PartialEq, Clone, Copy)]
-#[serde(rename_all = "camelCase")]
-pub enum Endian {
-    Little,
-    Big,
+    pub device_num_interrupts: Option<NestedSvdConstant>,
+    pub sau_num_regions: Option<NestedSvdConstant>,
+    pub sau_regions_config: Option<SauRegionsConfigType>,
 }
 
 #[derive(Debug, Serialize, Deserialize, Eq, PartialEq, Clone)]
@@ -54,27 +83,40 @@ pub struct Peripherals {
 #[derive(Debug, Serialize, Deserialize, Eq, PartialEq, Clone)]
 #[serde(rename_all = "camelCase")]
 pub struct Peripheral {
-    //Not yet supported by yaml-config
-    pub name: String,
-    #[serde(with = "HexSerde")]
-    pub base_address: u32,
-    pub address_block: Option<AddressBlock>,
-    //Supported by yaml-config
     pub derived_from: Option<String>,
+    pub dim_element: Option<DimElementGroup>,
+    pub name: String,
     pub version: Option<String>,
     pub description: Option<String>,
+    pub alternate_peripheral: Option<String>,
     pub group_name: Option<String>,
     pub prepend_to_name: Option<String>,
     pub append_to_name: Option<String>,
+    pub header_struct_name: Option<String>,
     pub disable_condition: Option<String>,
+    #[serde(with = "SvdConstant")]
+    pub base_address: u32,
+    pub register_properties: RegisterPropertiesGroup,
+    pub address_block: Option<AddressBlock>,
+    pub interrupts: Vec<Interrupt>,
     pub registers: Option<Registers>,
 }
 
 #[derive(Debug, Serialize, Deserialize, Eq, PartialEq, Clone)]
+#[serde(rename_all = "camelCase")]
+pub struct DimElementGroup {
+    pub dim: Option<NestedSvdConstant>,
+    pub dim_increment: Option<NestedSvdConstant>,
+    pub dim_index: Option<NestedSvdConstant>,
+    pub dim_name: Option<String>,
+    pub dim_array_index: Option<NestedSvdConstant>,
+}
+
+#[derive(Debug, Serialize, Deserialize, Eq, PartialEq, Clone)]
 pub struct AddressBlock {
-    #[serde(with = "HexSerde")]
+    #[serde(with = "SvdConstant")]
     pub offset: u32,
-    #[serde(with = "HexSerde")]
+    #[serde(with = "SvdConstant")]
     pub size: u32,
     pub usage: String,
 }
@@ -96,9 +138,9 @@ pub struct Registers {
 pub struct Register {
     //Not yet supported by yaml-config
     pub name: String,
-    #[serde(with = "HexSerde")]
+    #[serde(with = "SvdConstant")]
     pub size: u32,
-    #[serde(with = "HexSerde")]
+    #[serde(with = "SvdConstant")]
     pub reset_value: u32,
     //Supported by yaml-config
     pub display_name: String,
@@ -107,7 +149,7 @@ pub struct Register {
     pub derived_from: Option<String>,
 
     pub alternate_group: Option<String>,
-    #[serde(with = "HexSerde")]
+    #[serde(with = "SvdConstant")]
     pub address_offset: u32,
     pub modified_write_values: Option<ModifiedWriteValues>,
     pub write_constraint: Option<WriteConstraint>,
@@ -191,4 +233,11 @@ impl EnumeratedValues {
             enumerated_value: Vec::new(),
         }
     }
+}
+
+#[derive(Debug, Serialize, Deserialize, Eq, PartialEq, Clone)]
+#[serde(rename_all = "camelCase")]
+pub struct NestedSvdConstant {
+    #[serde(rename = "$value", with = "SvdConstant")]
+    pub value: u32,
 }
