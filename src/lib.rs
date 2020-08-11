@@ -19,5 +19,5 @@ pub fn read_svd_config(config_path: &String) -> output::Svd {
     );
     let mut svd = input::svd::Svd::read(base_conf_path + &"/" + yaml.svd.as_str());
     yaml.merge_into(&mut svd);
-    output::Svd::from(&svd)
+    svd.to_output()
 }

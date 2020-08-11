@@ -1,4 +1,3 @@
-use crate::input::svd as input_svd;
 use core::fmt;
 use regex::Regex;
 use serde::de::Visitor;
@@ -14,29 +13,6 @@ pub struct RegisterPropertiesGroup {
     pub protection: Option<Protection>,
     pub reset_value: Option<u32>,
     pub reset_mask: Option<u32>,
-}
-
-impl RegisterPropertiesGroup {
-    pub fn from(
-        register_prop_group: &input_svd::RegisterPropertiesGroup,
-    ) -> RegisterPropertiesGroup {
-        RegisterPropertiesGroup {
-            size: match &register_prop_group.size {
-                None => None,
-                Some(s) => Some(s.value),
-            },
-            access: register_prop_group.access.clone(),
-            protection: register_prop_group.protection.clone(),
-            reset_value: match &register_prop_group.reset_value {
-                None => None,
-                Some(rv) => Some(rv.value),
-            },
-            reset_mask: match &register_prop_group.reset_mask {
-                None => None,
-                Some(rm) => Some(rm.value),
-            },
-        }
-    }
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
@@ -81,19 +57,6 @@ pub struct AddressBlock {
     pub offset: u32,
     pub size: u32,
     pub usage: String,
-}
-
-impl AddressBlock {
-    pub fn from(address_block: &Option<crate::input::svd::AddressBlock>) -> Option<AddressBlock> {
-        match address_block {
-            None => None,
-            Some(ab) => Some(AddressBlock {
-                offset: ab.offset.clone(),
-                size: ab.size.clone(),
-                usage: ab.usage.clone(),
-            }),
-        }
-    }
 }
 
 #[derive(Debug, Serialize, Deserialize, Eq, PartialEq, Clone)]
@@ -201,6 +164,16 @@ pub struct Interrupt {
     pub description: Option<String>,
     #[serde(with = "SvdConstant")]
     pub value: u32,
+}
+
+#[derive(Debug, Serialize, Clone)]
+#[serde(rename_all = "camelCase")]
+pub struct DimElementGroup {
+    pub dim: Option<u32>,
+    pub dim_increment: Option<u32>,
+    pub dim_index: Option<u32>,
+    pub dim_name: Option<String>,
+    pub dim_array_index: Option<u32>,
 }
 
 pub struct SvdConstant;

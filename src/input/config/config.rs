@@ -1,5 +1,5 @@
+use crate::input::svd as input_svd;
 use crate::output;
-use super::svd as input;
 use serde::{Deserialize, Serialize};
 use std::collections::HashMap;
 use std::fs;
@@ -86,7 +86,7 @@ impl Config {
         )
         .expect("Error while parsing configuration file")
     }
-    pub fn merge_into(&self, svd: &mut input::Svd) {
+    pub fn merge_into(&self, svd: &mut input_svd::Svd) {
         for (peripheral_name, peripherals) in &self.device.peripherals {
             for svd_peripheral in &mut svd.device.peripherals.peripheral {
                 if peripheral_name.regex.is_match(&svd_peripheral.name) {
@@ -98,7 +98,7 @@ impl Config {
 }
 
 impl EnumeratedValue {
-    pub fn merge_into(&self, svd_enum_value: &mut input::EnumeratedValue) {
+    pub fn merge_into(&self, svd_enum_value: &mut input_svd::EnumeratedValue) {
         //Create
         let (value, description, is_default) = match self {
             EnumeratedValue::Value(v) => (Some(v.clone()), None, false),
@@ -134,7 +134,7 @@ macro_rules! merge_property {
 }
 
 impl Peripheral {
-    pub fn merge_into(&self, svd_peripheral: &mut input::Peripheral) {
+    pub fn merge_into(&self, svd_peripheral: &mut input_svd::Peripheral) {
         merge_option_property! {self, svd_peripheral, derived_from}
         merge_option_property! {self, svd_peripheral, version}
         merge_option_property! {self, svd_peripheral, description}
@@ -155,7 +155,7 @@ impl Peripheral {
 }
 
 impl Register {
-    pub fn merge_into(&self, svd_register: &mut input::Register) {
+    pub fn merge_into(&self, svd_register: &mut input_svd::Register) {
         merge_property! {self, svd_register, display_name}
         merge_property! {self, svd_register, description}
         merge_option_property! {self, svd_register, access}
@@ -176,7 +176,7 @@ impl Register {
 }
 
 impl Field {
-    pub fn merge_into(&self, svd_field: &mut input::Field) {
+    pub fn merge_into(&self, svd_field: &mut input_svd::Field) {
         merge_option_property! {self, svd_field, derived_from}
         merge_option_property! {self, svd_field, description}
         merge_option_property! {self, svd_field, access}
@@ -185,7 +185,7 @@ impl Field {
         merge_option_property! {self, svd_field, read_action}
         if self.enumerated_values.is_some() {
             if svd_field.enumerated_values.is_none() {
-                svd_field.enumerated_values = Some(input::EnumeratedValues::new());
+                svd_field.enumerated_values = Some(input_svd::EnumeratedValues::new());
             }
             let svd_enumerated_values = svd_field.enumerated_values.as_mut().unwrap();
             self.enumerated_values
@@ -195,7 +195,7 @@ impl Field {
         }
         if self.enumerated_values2.is_some() {
             if svd_field.enumerated_values2.is_none() {
-                svd_field.enumerated_values2 = Some(input::EnumeratedValues::new());
+                svd_field.enumerated_values2 = Some(input_svd::EnumeratedValues::new());
             }
             let svd_enumerated_values2 = svd_field.enumerated_values2.as_mut().unwrap();
             self.enumerated_values2
@@ -207,7 +207,7 @@ impl Field {
 }
 
 impl EnumeratedValues {
-    pub fn merge_into(&self, svd_enum_values: &mut input::EnumeratedValues) {
+    pub fn merge_into(&self, svd_enum_values: &mut input_svd::EnumeratedValues) {
         merge_option_property!(self, svd_enum_values, name);
         merge_option_property!(self, svd_enum_values, derived_from);
         merge_option_property!(self, svd_enum_values, usage);
