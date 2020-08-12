@@ -1,4 +1,4 @@
-//This file follows the definition as described in https://www.keil.com/pack/doc/CMSIS/SVD/html/index.html
+//This structure follows the definition as described in https://www.keil.com/pack/doc/CMSIS/SVD/html/index.html
 use serde::Serialize;
 
 use super::Device;

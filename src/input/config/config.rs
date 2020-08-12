@@ -158,7 +158,7 @@ impl Register {
     pub fn merge_into(&self, svd_register: &mut input_svd::Register) {
         merge_property! {self, svd_register, display_name}
         merge_property! {self, svd_register, description}
-        merge_option_property! {self, svd_register, access}
+        // ToDo: merge_option_property! {self, svd_register, access}
         merge_option_property! {self, svd_register, derived_from}
         merge_option_property! {self, svd_register, alternate_group}
         merge_property! {self, svd_register, address_offset}
@@ -166,9 +166,14 @@ impl Register {
         merge_option_property! {self, svd_register, write_constraint}
         merge_option_property! {self, svd_register, read_action}
         for (field_name, field) in &self.fields {
-            for svd_field in &mut svd_register.fields.field {
-                if field_name.regex.is_match(&svd_field.name) {
-                    field.merge_into(svd_field);
+            match &mut svd_register.fields {
+                None => {}
+                Some(fields) => {
+                    for svd_field in &mut fields.field {
+                        if field_name.regex.is_match(&svd_field.name) {
+                            field.merge_into(svd_field);
+                        }
+                    }
                 }
             }
         }
@@ -184,24 +189,32 @@ impl Field {
         merge_option_property! {self, svd_field, write_constraint}
         merge_option_property! {self, svd_field, read_action}
         if self.enumerated_values.is_some() {
-            if svd_field.enumerated_values.is_none() {
-                svd_field.enumerated_values = Some(input_svd::EnumeratedValues::new());
+            if svd_field.enumerated_values.is_empty() {
+                svd_field
+                    .enumerated_values
+                    .push(input_svd::EnumeratedValues::new());
             }
-            let svd_enumerated_values = svd_field.enumerated_values.as_mut().unwrap();
+            let svd_enumerated_values = svd_field.enumerated_values.first_mut().unwrap();
             self.enumerated_values
                 .as_ref()
                 .unwrap()
                 .merge_into(svd_enumerated_values);
         }
         if self.enumerated_values2.is_some() {
-            if svd_field.enumerated_values2.is_none() {
-                svd_field.enumerated_values2 = Some(input_svd::EnumeratedValues::new());
+            if svd_field.enumerated_values.len() == 0 {
+                panic!(
+                    "enumerated_values2 is not allowed in config without defined enumerated_values"
+                );
+            } else if svd_field.enumerated_values.len() == 1 {
+                svd_field
+                    .enumerated_values
+                    .push(input_svd::EnumeratedValues::new());
             }
-            let svd_enumerated_values2 = svd_field.enumerated_values2.as_mut().unwrap();
+            let svd_enumerated_values = svd_field.enumerated_values.get_mut(1).unwrap();
             self.enumerated_values2
                 .as_ref()
                 .unwrap()
-                .merge_into(svd_enumerated_values2);
+                .merge_into(svd_enumerated_values);
         }
     }
 }

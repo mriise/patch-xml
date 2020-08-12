@@ -8,6 +8,7 @@ use serde::{Deserialize, Serialize};
 #[derive(Debug, Serialize, Deserialize, Eq, PartialEq, Clone)]
 #[serde(rename_all = "camelCase")]
 pub struct Device {
+    pub schema_version: String,
     pub vendor: Option<String>,
     pub vendor_id: Option<String>,
     pub name: String,
@@ -51,6 +52,7 @@ pub struct Cpu {
 impl Device {
     pub(crate) fn to_output(&self) -> OutputDevice {
         OutputDevice {
+            schema_version: self.schema_version.clone(),
             vendor: self.vendor.clone(),
             vendor_id: self.vendor_id.clone(),
             name: self.name.clone(),

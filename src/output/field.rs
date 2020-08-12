@@ -1,49 +1,41 @@
-use super::{AccessType, EnumeratedValuesUsage, ModifiedWriteValues, ReadAction, WriteConstraint};
+use super::{
+    AccessType, DimElementGroup, EnumeratedValue, EnumeratedValuesUsage, ModifiedWriteValues,
+    ReadAction, WriteConstraint,
+};
 use serde::Serialize;
 
 #[derive(Debug, Serialize, Eq, PartialEq, Clone)]
 #[serde(rename_all = "camelCase")]
 pub struct Field {
+    pub derived_from: Option<String>,
+    pub dim_element: DimElementGroup,
     pub name: String,
-    pub mask: u32,
     pub description: Option<String>,
+    pub mask: u32,
     pub access: Option<AccessType>,
     pub modified_write_values: Option<ModifiedWriteValues>,
     pub write_constraint: Option<WriteConstraint>,
     pub read_action: Option<ReadAction>,
-    pub field_type: FieldType,
+    pub enumerated_values: EnumAccessType,
 }
 
 #[derive(Debug, Serialize, Eq, PartialEq, Clone)]
-#[serde(rename_all = "camelCase")]
-pub enum EnumeratedValues {
-    Content {
-        name: String,
-        usage: Option<EnumeratedValuesUsage>,
-        enumerated_value: Vec<EnumeratedValue>,
-    },
-    Derived {
-        derived_from: String,
-    },
+pub struct EnumeratedValues {
+    pub derived_from: Option<String>,
+    pub name: Option<String>,
+    pub header_enum_name: Option<String>,
+    pub usage: Option<EnumeratedValuesUsage>,
+    pub enumerated_value: Vec<EnumeratedValue>,
 }
 
 #[derive(Debug, Serialize, Eq, PartialEq, Clone)]
-#[serde(rename_all = "camelCase")]
-pub enum FieldType {
-    Raw(String),
-    Enum(EnumeratedValues),
-}
-
-#[derive(Debug, Serialize, Eq, PartialEq, Clone)]
-#[serde(rename_all = "camelCase")]
-pub enum EnumeratedValue {
-    Valued {
-        name: String,
-        description: String,
-        value: u32,
+pub enum EnumAccessType {
+    ReadAndWrite(EnumeratedValues),
+    ReadWrite {
+        read: EnumeratedValues,
+        write: EnumeratedValues,
     },
-    Default {
-        name: String,
-        description: String,
-    },
+    Read(EnumeratedValues),
+    Write(EnumeratedValues),
+    None,
 }

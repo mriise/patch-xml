@@ -1,9 +1,11 @@
 use super::{EndianType, Peripheral, RegisterPropertiesGroup};
+use crate::output::Protection;
 use serde::Serialize;
 
 #[derive(Serialize, Clone)]
 #[serde(rename_all = "camelCase")]
 pub struct Device {
+    pub schema_version: String,
     pub vendor: Option<String>,
     pub vendor_id: Option<String>,
     pub name: String,
@@ -45,6 +47,14 @@ pub struct Cpu {
 #[derive(Debug, Serialize, Eq, PartialEq, Clone)]
 #[serde(rename_all = "camelCase")]
 pub struct SauRegionsConfigType {
+    pub enabled: Option<bool>,
+    pub protection_when_disabled: Option<Protection>,
+    pub regions: Vec<SauRegionType>,
+}
+
+#[derive(Debug, Serialize, Eq, PartialEq, Clone)]
+#[serde(rename_all = "camelCase")]
+pub struct SauRegionType {
     pub enabled: Option<bool>,
     pub name: Option<String>,
     pub base: u32,

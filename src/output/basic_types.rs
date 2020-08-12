@@ -1,9 +1,25 @@
 use core::fmt;
 use regex::Regex;
-use serde::de::Visitor;
-use serde::{de, ser, Deserialize, Serialize};
-use std::hash::{Hash, Hasher};
-use std::str::FromStr;
+use serde::{de, de::Visitor, ser, Deserialize, Serialize};
+use std::{
+    hash::{Hash, Hasher},
+    str::FromStr,
+};
+
+#[derive(Debug, Serialize, Eq, PartialEq, Clone)]
+#[serde(rename_all = "camelCase")]
+pub struct EnumeratedValue {
+    pub name: String,
+    pub description: String,
+    pub value: EnumValue,
+}
+
+#[derive(Debug, Serialize, Eq, PartialEq, Clone)]
+#[serde(rename_all = "camelCase")]
+pub enum EnumValue {
+    Default,
+    Value(u32),
+}
 
 #[derive(Debug, Serialize, Eq, PartialEq, Clone)]
 #[serde(rename_all = "camelCase")]
@@ -57,6 +73,7 @@ pub struct AddressBlock {
     pub offset: u32,
     pub size: u32,
     pub usage: String,
+    pub protection: Option<Protection>,
 }
 
 #[derive(Debug, Serialize, Deserialize, Eq, PartialEq, Clone)]
@@ -74,11 +91,12 @@ pub enum AccessType {
     ReadWrite,
     #[serde(rename = "writeOnce")]
     WriteOnce,
-    #[serde(rename = "read_writeOnce")]
+    #[serde(rename = "read-writeOnce")]
     ReadWriteOnce,
 }
 
 #[derive(Debug, Serialize, Deserialize, Eq, PartialEq, Clone)]
+#[serde(rename_all = "camelCase")]
 pub enum ModifiedWriteValues {
     OneToClear,
     OneToSet,
@@ -103,7 +121,7 @@ pub enum ReadAction {
 pub enum WriteConstraint {
     WriteAsRead,
     UseEnumeratedValues,
-    Range(u32, u32),
+    Range { minimum: u32, maximum: u32 },
 }
 
 #[derive(Debug, Serialize, Deserialize, Eq, PartialEq, Clone)]
@@ -166,14 +184,50 @@ pub struct Interrupt {
     pub value: u32,
 }
 
-#[derive(Debug, Serialize, Clone)]
+#[derive(Debug, Serialize, Eq, PartialEq, Clone)]
 #[serde(rename_all = "camelCase")]
 pub struct DimElementGroup {
     pub dim: Option<u32>,
     pub dim_increment: Option<u32>,
     pub dim_index: Option<u32>,
     pub dim_name: Option<String>,
-    pub dim_array_index: Option<u32>,
+    pub dim_array_index: Option<DimArrayIndex>,
+}
+
+#[derive(Debug, Serialize, Eq, PartialEq, Clone)]
+#[serde(rename_all = "camelCase")]
+pub struct DimArrayIndex {
+    pub header_enum_name: Option<String>,
+    pub enumerated_values: Vec<EnumeratedValue>,
+}
+
+#[derive(Debug, Serialize, Deserialize, Eq, PartialEq, Clone)]
+#[serde(rename_all = "snake_case")]
+pub enum DataType {
+    Uint8T,
+    Uint16T,
+    Uint32T,
+    Uint64T,
+    Int8T,
+    Int16T,
+    Int32T,
+    Int64T,
+    #[serde(rename = "uint8_t *")]
+    Uint8TPointer,
+    #[serde(rename = "uint16_t *")]
+    Uint16TPointer,
+    #[serde(rename = "uint32_t *")]
+    Uint32TPointer,
+    #[serde(rename = "uint64_t *")]
+    Uint64TPointer,
+    #[serde(rename = "int8_t *")]
+    Int8TPointer,
+    #[serde(rename = "int16_t *")]
+    Int16TPointer,
+    #[serde(rename = "int32_t *")]
+    Int32TPointer,
+    #[serde(rename = "int64_t *")]
+    Int64TPointer,
 }
 
 pub struct SvdConstant;

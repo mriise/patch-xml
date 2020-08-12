@@ -1,5 +1,6 @@
+use crate::input::svd::{DimElementGroup, Fields, RegisterPropertiesGroup};
 use crate::output::{
-    AccessType, ModifiedWriteValues, ReadAction, Register as OutputRegister, SvdConstant,
+    DataType, ModifiedWriteValues, ReadAction, Register as OutputRegister, SvdConstant,
     WriteConstraint,
 };
 use itertools::Itertools;
@@ -13,25 +14,21 @@ pub struct Registers {
 #[derive(Debug, Serialize, Deserialize, Eq, PartialEq, Clone)]
 #[serde(rename_all = "camelCase")]
 pub struct Register {
-    //Not yet supported by yaml-config
+    pub derived_from: Option<String>,
+    pub dim_element: DimElementGroup,
     pub name: String,
-    #[serde(with = "SvdConstant")]
-    pub size: u32,
-    #[serde(with = "SvdConstant")]
-    pub reset_value: u32,
-    //Supported by yaml-config
     pub display_name: String,
     pub description: String,
-    pub access: Option<AccessType>,
-    pub derived_from: Option<String>,
-
     pub alternate_group: Option<String>,
+    pub alternate_register: Option<String>,
     #[serde(with = "SvdConstant")]
     pub address_offset: u32,
+    pub register_properties: RegisterPropertiesGroup,
+    pub data_type: Option<DataType>,
     pub modified_write_values: Option<ModifiedWriteValues>,
     pub write_constraint: Option<WriteConstraint>,
     pub read_action: Option<ReadAction>,
-    pub fields: super::Fields,
+    pub fields: Option<Fields>,
 }
 
 impl Registers {
@@ -46,52 +43,27 @@ impl Registers {
 
 impl Register {
     pub fn to_output(&self) -> OutputRegister {
-        let access = self.access.clone();
         OutputRegister {
+            derived_from: self.derived_from.clone(),
+            dim_element: self.dim_element.to_output(),
             name: self.name.clone(),
-            size: self.size.clone(),
-            reset_value: self.reset_value.clone(),
             display_name: self.display_name.clone(),
             description: self.description.clone(),
-            access: access.clone(),
             alternate_group: self.alternate_group.clone(),
-            address_offset: self.address_offset.clone(),
+            alternate_register: self.alternate_register.clone(),
+            address_offset: self.address_offset,
+            register_properties: self.register_properties.to_output(),
+            data_type: self.data_type.clone(),
             modified_write_values: self.modified_write_values.clone(),
             write_constraint: self.write_constraint.clone(),
             read_action: self.read_action.clone(),
-            read_fields: self
-                .fields
-                .field
-                .iter()
-                .filter(|f| {
-                    Register::prioritize_access_type(&access, &f.access) == AccessType::ReadOnly
-                })
-                .sorted_by(|f1, f2| f1.bit_offset.cmp(&f2.bit_offset))
-                .map(super::Field::to_output)
-                .collect(),
-            write_fields: self
-                .fields
-                .field
-                .iter()
-                .filter(|f| {
-                    Register::prioritize_access_type(&access, &f.access) == AccessType::WriteOnly
-                })
-                .sorted_by(|f1, f2| f1.bit_offset.cmp(&f2.bit_offset))
-                .map(super::Field::to_output)
-                .collect(),
-            read_write_fields: self
-                .fields
-                .field
-                .iter()
-                .filter(|f| {
-                    Register::prioritize_access_type(&access, &f.access) == AccessType::ReadWrite
-                })
-                .sorted_by(|f1, f2| f1.bit_offset.cmp(&f2.bit_offset))
-                .map(super::Field::to_output)
-                .collect(),
+            fields: match &self.fields {
+                None => Vec::new(),
+                Some(fields) => fields.to_output(),
+            },
         }
     }
-    fn prioritize_access_type(
+    /*fn prioritize_access_type(
         register_access_type: &Option<AccessType>,
         field_access_type: &Option<AccessType>,
     ) -> AccessType {
@@ -102,5 +74,5 @@ impl Register {
         } else {
             AccessType::ReadWrite
         }
-    }
+    }*/
 }
