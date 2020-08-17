@@ -23,7 +23,7 @@ impl Svd {
             .expect("Error while parsing SVD file"),
         }
     }
-    #[allow(dead_code)] // At the moment, write is not supported by serde-xml-rs
+    #[allow(dead_code)] // At the moment, serde_xml_rs::to_string is not fully supported
     pub fn write(&self, path: &String) {
         let write_result = match serde_xml_rs::to_string(self) {
             Ok(svd_string) => fs::write(&path, svd_string.as_bytes()),
@@ -35,5 +35,13 @@ impl Svd {
                 write_result.unwrap_err()
             );
         }
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    #[test]
+    fn dummy_test() {
+        assert_eq!(2, 2);
     }
 }
