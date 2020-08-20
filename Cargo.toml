@@ -5,6 +5,9 @@ authors = ["Alexander Huymayer"]
 edition = "2018"
 description = "Load and patch svd files. Pre-alpha version. No stable interface until version 0.1.0."
 license = "MIT OR Apache-2.0"
+readme = "README.md"
+repository = "https://github.com/VilNeo/patch-svd"
+keywords = ["svd", "embedded"]
 
 [dependencies]
 itertools = "0.9.*"
