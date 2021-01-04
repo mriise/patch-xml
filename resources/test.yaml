@@ -1,0 +1,54 @@
+elementa:
+  elementb:
+    $if:
+      elementc: ">-44"
+    $modify:
+      updated_element: updated
+    #    elementc is not allowed when already used in a value
+    elementc:
+      $modify:
+        ~elementd: ~
+elemente: Hallo Welt
+elementf:
+  - $if:
+      elementc: ">-44"
+    $modify:
+      updated_element: updated
+    #    elementc is not allowed when already used in a value
+    elementc:
+      - $if:
+          elementd: "==23"
+        $modify:
+          ~elementd: ~
+      - $modify:
+          ~elementd: ~
+  - $if:
+      elementc: ">-44"
+    $modify:
+      updated_element: updated
+    #    elementc is not allowed when already used in a value
+    elementc:
+      $modify:
+        ~elementd: ~
+elementg:
+  - elementf: huhu
+  - elementf: haha
+elementa2:
+  elementb:
+    $if:
+      elementc: ">-44"
+    $modify:
+      - updated_element: updated
+      - +added: true
+      - +added: false
+      - ~elementc:
+          $if: 0
+          single_value: replaced
+      - +added:
+          complex_value: Huhu
+      - +added: true
+    #    elementc is not allowed when already used in a value
+    elementc:
+      - $modify:
+          - ~elementd: ~
+elemente2: Hallo Welt

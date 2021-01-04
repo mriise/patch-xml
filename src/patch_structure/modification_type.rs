@@ -7,19 +7,46 @@ use std::hash::{Hash, Hasher};
 // use std::rc::Rc;
 
 #[derive(Debug, Deserialize, Clone)]
-#[serde(from = "String", into = "String")]
 pub enum ModificationType {
-    Modify(ReferenceExpression),
-    Replace(ReferenceExpression),
-    Add(ReferenceExpression),
+    Modify,
+    Replace,
+    Add,
 }
 
 impl ModificationType {
-    pub fn to_string(&self) -> String {
+    pub fn is_modify(&self) -> bool {
         match self {
-            ModificationType::Modify(re) => format!("Modify[{}]", re.to_string()),
-            ModificationType::Replace(re) => format!("Replace[{}]", re.to_string()),
-            ModificationType::Add(re) => format!("Add[{}]", re.to_string()),
+            ModificationType::Modify => true,
+            _ => false,
+        }
+    }
+    pub fn is_replace(&self) -> bool {
+        match self {
+            ModificationType::Replace => true,
+            _ => false,
+        }
+    }
+    /*pub fn is_add(&self) -> bool {
+        match self {
+            ModificationType::Add => true,
+            _ => false,
+        }
+    }*/
+}
+
+#[derive(Debug, Deserialize, Clone)]
+#[serde(from = "String", into = "String")]
+pub struct ModificationIdentifier {
+    pub mod_type: ModificationType,
+    pub identifier: ReferenceExpression,
+}
+
+impl ModificationIdentifier {
+    pub fn to_string(&self) -> String {
+        match self.mod_type {
+            ModificationType::Modify => format!("Modify[{}]", self.identifier.to_string()),
+            ModificationType::Replace => format!("Replace[{}]", self.identifier.to_string()),
+            ModificationType::Add => format!("Add[{}]", self.identifier.to_string()),
         }
     }
     /*ToDo: pub fn get_expression<'a>(&'a self) -> &'a ReferenceExpression {
@@ -34,20 +61,24 @@ impl ModificationType {
     }*/
 }
 
-impl ModificationType {}
+impl ModificationIdentifier {}
 
-impl PartialEq for ModificationType {
+impl PartialEq for ModificationIdentifier {
     fn eq(&self, other: &Self) -> bool {
-        match (self, other) {
-            (ModificationType::Modify(m1), ModificationType::Modify(m2)) => m1 == m2,
-            (ModificationType::Replace(m1), ModificationType::Replace(m2)) => m1 == m2,
-            (ModificationType::Add(m1), ModificationType::Add(m2)) => m1 == m2,
+        match (&self.mod_type, &other.mod_type) {
+            (ModificationType::Modify, ModificationType::Modify) => {
+                self.identifier == other.identifier
+            }
+            (ModificationType::Replace, ModificationType::Replace) => {
+                self.identifier == other.identifier
+            }
+            (ModificationType::Add, ModificationType::Add) => self.identifier == other.identifier,
             (_, _) => false,
         }
     }
 }
-impl Eq for ModificationType {}
-impl Hash for ModificationType {
+impl Eq for ModificationIdentifier {}
+impl Hash for ModificationIdentifier {
     fn hash<H>(&self, state: &mut H)
     where
         H: Hasher,
@@ -57,23 +88,28 @@ impl Hash for ModificationType {
     }
 }
 
-impl From<String> for ModificationType {
+impl From<String> for ModificationIdentifier {
     fn from(modification_string: String) -> Self {
-        match modification_string.split_at(1) {
-            ("~", pattern) => ModificationType::Replace(ReferenceExpression::from(pattern)),
-            ("+", pattern) => ModificationType::Add(ReferenceExpression::from(pattern)),
-            (_, _) => ModificationType::Modify(ReferenceExpression::from(modification_string)),
+        let (mod_type, pattern) = match modification_string.split_at(1) {
+            ("~", pattern) => (ModificationType::Replace, pattern),
+            ("+", pattern) => (ModificationType::Add, pattern),
+            (_, _) => (ModificationType::Modify, modification_string.as_str()),
+        };
+        let identifier = ReferenceExpression::from(pattern);
+        ModificationIdentifier {
+            mod_type,
+            identifier,
         }
     }
 }
 
-impl From<&str> for ModificationType {
+impl From<&str> for ModificationIdentifier {
     fn from(modification_string: &str) -> Self {
-        ModificationType::from(modification_string.to_string())
+        ModificationIdentifier::from(modification_string.to_string())
     }
 }
 
-impl Into<String> for ModificationType {
+impl Into<String> for ModificationIdentifier {
     fn into(self) -> String {
         self.to_string()
     }
@@ -86,22 +122,31 @@ mod tests {
     #[test]
     fn modify() {
         assert_eq!(
-            ModificationType::from("pattern"),
-            ModificationType::Modify(ReferenceExpression::from("pattern"))
+            ModificationIdentifier::from("pattern"),
+            ModificationIdentifier {
+                mod_type: ModificationType::Modify,
+                identifier: ReferenceExpression::from("pattern")
+            }
         );
     }
     #[test]
     fn add() {
         assert_eq!(
-            ModificationType::from("+pattern"),
-            ModificationType::Add(ReferenceExpression::from("pattern"))
+            ModificationIdentifier::from("+pattern"),
+            ModificationIdentifier {
+                mod_type: ModificationType::Add,
+                identifier: ReferenceExpression::from("pattern")
+            }
         );
     }
     #[test]
     fn replace() {
         assert_eq!(
-            ModificationType::from("~pattern"),
-            ModificationType::Replace(ReferenceExpression::from("pattern"))
+            ModificationIdentifier::from("~pattern"),
+            ModificationIdentifier {
+                mod_type: ModificationType::Replace,
+                identifier: ReferenceExpression::from("pattern")
+            }
         );
     }
 }

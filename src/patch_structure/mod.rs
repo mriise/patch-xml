@@ -3,7 +3,7 @@ mod reference_expression;
 mod refex_segment;
 mod regex;
 
-pub use crate::patch_structure::modification_type::ModificationType;
+pub use crate::patch_structure::modification_type::ModificationIdentifier;
 use crate::patch_structure::reference_expression::ReferenceExpression;
 use crate::patch_structure::regex::Regex;
 // use crate::xml_structure::xml_path::XmlPath;
@@ -119,11 +119,11 @@ pub struct Value {
     #[serde(flatten)]
     pub modifier: Modifier,
     #[serde(flatten)]
-    pub subvalues: HashMap<ModificationType, ValueType>,
+    pub subvalues: HashMap<ModificationIdentifier, ValueType>,
 }
 
-impl From<Vec<(ModificationType, ValueType)>> for Value {
-    fn from(subvalues: Vec<(ModificationType, ValueType)>) -> Self {
+impl From<Vec<(ModificationIdentifier, ValueType)>> for Value {
+    fn from(subvalues: Vec<(ModificationIdentifier, ValueType)>) -> Self {
         Value {
             modifier: Modifier::new(),
             subvalues: subvalues.iter().cloned().collect(),
@@ -138,8 +138,8 @@ impl From<Modifier> for Value {
         }
     }
 }
-impl From<(Modifier, Vec<(ModificationType, ValueType)>)> for Value {
-    fn from(properties: (Modifier, Vec<(ModificationType, ValueType)>)) -> Self {
+impl From<(Modifier, Vec<(ModificationIdentifier, ValueType)>)> for Value {
+    fn from(properties: (Modifier, Vec<(ModificationIdentifier, ValueType)>)) -> Self {
         Value {
             modifier: properties.0,
             subvalues: properties.1.iter().cloned().collect(),
@@ -457,13 +457,13 @@ mod tests {
                 QueryChildType::QuerySet(vec![Query::from(Some(ValueType::ComplexValues(vec![
                     Value::from(vec![
                         (
-                            ModificationType::from("elementb"),
+                            ModificationIdentifier::from("elementb"),
                             ValueType::SimpleValue(SimpleValueType::Pattern(
                                 ReferenceExpression::from("hello"),
                             )),
                         ),
                         (
-                            ModificationType::from("elementc"),
+                            ModificationIdentifier::from("elementc"),
                             ValueType::SimpleValue(SimpleValueType::Pattern(
                                 ReferenceExpression::from("world"),
                             )),
@@ -487,13 +487,13 @@ mod tests {
                 Regex::from("elementa"),
                 QueryChildType::QuerySet(vec![Query::from(Some(ValueType::ComplexValues(vec![
                     Value::from(vec![(
-                        ModificationType::from("elementb"),
+                        ModificationIdentifier::from("elementb"),
                         ValueType::SimpleValue(SimpleValueType::Pattern(
                             ReferenceExpression::from("hello"),
                         )),
                     )]),
                     Value::from(vec![(
-                        ModificationType::from("elementb"),
+                        ModificationIdentifier::from("elementb"),
                         ValueType::SimpleValue(SimpleValueType::Pattern(
                             ReferenceExpression::from("world"),
                         )),

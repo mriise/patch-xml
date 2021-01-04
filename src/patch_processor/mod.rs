@@ -1,4 +1,4 @@
-use crate::patch_structure::{self, QueryChildType};
+use crate::patch_structure::{self, QueryChildType, Value, ValueType};
 use crate::xml_structure::bidirectional_xml_tree::*;
 use std::cell::RefCell;
 use std::fs::File;
@@ -109,12 +109,12 @@ impl PatchProcessor {
                     }
                 }
                 //  3. Run applyModifications on current path
-                /*match &query.modification {
+                match &query.modification {
                     None => {}
                     Some(value_type) => {
-                        self.xml_tree.modify(&value_type, &path);
+                        Self::modify(&value_type, &xml_parent_node);
                     }
-                }*/
+                }
                 //  4. Run move/copy on current path
                 /*match &query.modifier.move_to {
                     None => {}
@@ -157,6 +157,50 @@ impl PatchProcessor {
                     xml_node.borrow_mut().clear_children();
                 } else {
                     Self::apply_queries(qs, &xml_node);
+                }
+            }
+        }
+    }
+    pub fn modify(value_type: &ValueType, current_node: &Rc<RefCell<XmlNode>>) {
+        match value_type {
+            ValueType::SimpleValue(v) => {
+                current_node.borrow_mut().clear_children();
+                match v.to_xml_node(&current_node) {
+                    None => {}
+                    Some(n) => {
+                        XmlTree::append(current_node, n);
+                    }
+                }
+            }
+            ValueType::ComplexValues(values) => {
+                for Value { subvalues, .. } in values {
+                    for (mod_type, value_type) in subvalues {
+                        let mut updated = false;
+                        if mod_type.mod_type.is_modify() {
+                            for child in current_node.borrow().children() {
+                                //ToDo: Evaluation must be applied correctly
+                                let name = child.borrow().name();
+                                if name.is_some()
+                                    && name.unwrap() == mod_type.identifier.evaluate(current_node)
+                                {
+                                    updated = true;
+                                    Self::modify(value_type, &child);
+                                }
+                            }
+                        }
+                        if updated == false && !mod_type.mod_type.is_replace() {
+                            let new_child = XmlTree::append(
+                                current_node,
+                                XmlNodeData::Element(Element {
+                                    prefix: None,
+                                    name: mod_type.identifier.evaluate(current_node),
+                                    applied_regexp: None,
+                                    children: vec![],
+                                }),
+                            );
+                            Self::modify(value_type, &new_child);
+                        }
+                    }
                 }
             }
         }
@@ -476,7 +520,7 @@ mod tests {
             );
         }*/
     }
-    /*mod modification_tests {
+    mod modification_tests {
         use super::*;
         #[test]
         fn simple_update() {
@@ -535,5 +579,5 @@ mod tests {
                 ),
             );
         }
-    }*/
+    }
 }
