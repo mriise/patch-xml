@@ -1,7 +1,10 @@
 use crate::patch_structure::reference_expression::ReferenceExpression;
-use crate::xml_structure::xml_path::XmlPath;
+// use crate::xml_structure::xml_path::XmlPath;
+// use crate::xml_structure::bidirectional_xml_tree::XmlNode;
 use serde::Deserialize;
+// use std::cell::RefCell;
 use std::hash::{Hash, Hasher};
+// use std::rc::Rc;
 
 #[derive(Debug, Deserialize, Clone)]
 #[serde(from = "String", into = "String")]
@@ -19,16 +22,16 @@ impl ModificationType {
             ModificationType::Add(re) => format!("Add[{}]", re.to_string()),
         }
     }
-    pub fn get_expression<'a>(&'a self) -> &'a ReferenceExpression {
+    /*ToDo: pub fn get_expression<'a>(&'a self) -> &'a ReferenceExpression {
         match self {
             ModificationType::Modify(re) => &re,
             ModificationType::Replace(re) => &re,
             ModificationType::Add(re) => &re,
         }
     }
-    pub fn evaluate(&self, path: &XmlPath) -> String {
-        self.get_expression().evaluate(path)
-    }
+    pub fn evaluate(&self, current_node: Rc<RefCell<XmlNode>>) -> String {
+        self.get_expression().evaluate(&current_node)
+    }*/
 }
 
 impl ModificationType {}

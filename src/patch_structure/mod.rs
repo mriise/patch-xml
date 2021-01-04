@@ -6,12 +6,15 @@ mod regex;
 pub use crate::patch_structure::modification_type::ModificationType;
 use crate::patch_structure::reference_expression::ReferenceExpression;
 use crate::patch_structure::regex::Regex;
-use crate::xml_structure::xml_path::XmlPath;
+// use crate::xml_structure::xml_path::XmlPath;
+use crate::xml_structure::bidirectional_xml_tree::{XmlNode, XmlNodeData};
 use serde::{
     de::{self},
     Deserialize,
 };
+use std::cell::RefCell;
 use std::collections::HashMap;
+use std::rc::Rc;
 use std::{error, fmt};
 
 pub fn parse(content: &String) -> Result<Option<QueryChildType>, Box<dyn error::Error>> {
@@ -160,12 +163,13 @@ pub enum SimpleValueType {
 }
 
 impl SimpleValueType {
-    pub fn to_xml_node(&self, path: &XmlPath) -> Option<xmltree::XMLNode> {
+    //ToDo: Add element as argument to avoid accidently mixups when using multiple same elements
+    pub fn to_xml_node(&self, current_node: &Rc<RefCell<XmlNode>>) -> Option<XmlNodeData> {
         match self {
-            SimpleValueType::Pattern(p) => Some(xmltree::XMLNode::Text(p.evaluate(&path))),
-            SimpleValueType::Boolean(b) => Some(xmltree::XMLNode::Text(b.to_string())),
-            SimpleValueType::UnsignedInteger(ui) => Some(xmltree::XMLNode::Text(ui.to_string())),
-            SimpleValueType::SignedInteger(si) => Some(xmltree::XMLNode::Text(si.to_string())),
+            SimpleValueType::Pattern(p) => Some(XmlNodeData::Text(p.evaluate(current_node))),
+            SimpleValueType::Boolean(b) => Some(XmlNodeData::Text(b.to_string())),
+            SimpleValueType::UnsignedInteger(ui) => Some(XmlNodeData::Text(ui.to_string())),
+            SimpleValueType::SignedInteger(si) => Some(XmlNodeData::Text(si.to_string())),
             SimpleValueType::Remove => None,
         }
     }

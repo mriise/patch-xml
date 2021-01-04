@@ -1,7 +1,9 @@
 use crate::patch_structure::refex_segment::{CaptureReference, Segment, SegmentReference};
-use crate::xml_structure::xml_path::XmlPath;
+use crate::xml_structure::bidirectional_xml_tree::XmlNode;
 use serde::Deserialize;
+use std::cell::RefCell;
 use std::hash::{Hash, Hasher};
+use std::rc::Rc;
 
 #[derive(Debug, Clone, Deserialize)]
 #[serde(from = "String", into = "String")]
@@ -59,29 +61,28 @@ impl ReferenceExpression {
         }
         ReferenceExpression { segments }
     }
-    pub fn evaluate(&self, path: &XmlPath) -> String {
+    pub fn evaluate(&self, current_node: &Rc<RefCell<XmlNode>>) -> String {
         let mut result = String::new();
         for segment in &self.segments {
             match segment {
                 Segment::String(s) => result.push_str(s),
                 Segment::Reference(reference) => {
-                    let mut referenced_element = path.clone();
-                    referenced_element.apply(reference.path.clone());
-                    match referenced_element.segments.last() {
-                        None => panic!(
-                            "Could not access required path segment from reference expression"
-                        ),
-                        Some(segment) => {
-                            for capture in segment.regex.captures_iter(&segment.name) {
-                                result.push_str(match &reference.capture {
-                                    CaptureReference::Number(n) => {
-                                        capture.get(n.clone()).unwrap().as_str()
-                                    }
-                                    CaptureReference::Name(n) => capture.name(&n).unwrap().as_str(),
-                                    CaptureReference::WholeExpression => segment.name.as_str(),
-                                });
-                            }
-                        }
+                    let splitted_path = reference.path.split("/").map(|s| s.to_string()).collect();
+                    let current_node =
+                        XmlNode::get_node_info_by_path(current_node.clone(), splitted_path);
+                    let (regex, name) = match (
+                        current_node.borrow().get_regex(),
+                        current_node.borrow().name(),
+                    ) {
+                        (Some(regex), Some(name)) => (regex, name),
+                        (_, _) => panic!("Could not evaluate regular expression"),
+                    };
+                    for capture in regex.captures_iter(&name) {
+                        result.push_str(match &reference.capture {
+                            CaptureReference::Number(n) => capture.get(n.clone()).unwrap().as_str(),
+                            CaptureReference::Name(n) => capture.name(&n).unwrap().as_str(),
+                            CaptureReference::WholeExpression => name.as_str(),
+                        });
                     }
                 }
             }

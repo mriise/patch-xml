@@ -1,2 +1,1 @@
-pub mod xml_path;
-pub mod xml_tree;
+pub mod bidirectional_xml_tree;
