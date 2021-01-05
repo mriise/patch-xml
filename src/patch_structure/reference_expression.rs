@@ -69,7 +69,7 @@ impl ReferenceExpression {
                 Segment::Reference(reference) => {
                     let splitted_path = reference.path.split("/").map(|s| s.to_string()).collect();
                     let current_node =
-                        XmlNode::get_node_info_by_path(current_node.clone(), splitted_path);
+                        XmlNode::get_node_info_by_path(current_node.clone(), splitted_path, false);
                     let (regex, name) = match (
                         current_node.borrow().get_regex(),
                         current_node.borrow().name(),

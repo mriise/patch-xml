@@ -1,10 +1,6 @@
 use crate::patch_structure::reference_expression::ReferenceExpression;
-// use crate::xml_structure::xml_path::XmlPath;
-// use crate::xml_structure::bidirectional_xml_tree::XmlNode;
 use serde::Deserialize;
-// use std::cell::RefCell;
 use std::hash::{Hash, Hasher};
-// use std::rc::Rc;
 
 #[derive(Debug, Deserialize, Clone)]
 pub enum ModificationType {

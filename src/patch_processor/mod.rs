@@ -116,14 +116,22 @@ impl PatchProcessor {
                     }
                 }
                 //  4. Run move/copy on current path
-                /*match &query.modifier.move_to {
+                match &query.modifier.copy {
                     None => {}
-                    Some(move_expression) => {
-                        let move_expression = move_expression.evaluate(&path);
-                        let mut path = path.clone();
-                        let remaining = path.apply(move_expression);
-                    }
-                }*/
+                    Some(copy_expression) => XmlNode::move_copy_node(
+                        &xml_parent_node,
+                        copy_expression,
+                        MoveCopyAction::Copy,
+                    ),
+                }
+                match &query.modifier.move_to {
+                    None => {}
+                    Some(move_expression) => XmlNode::move_copy_node(
+                        &xml_parent_node,
+                        move_expression,
+                        MoveCopyAction::Move,
+                    ),
+                }
             }
         }
     }
@@ -348,38 +356,6 @@ mod tests {
                 indoc!(r#"<element>Foo</element>"#),
             );
         }
-        /*        #[test]
-                fn borrow_check() {
-                    use crate::xml_structure::bidirectional_xml_tree::*;
-                    let mut xml_tree = XmlTree::new();
-                    XmlTree::append(
-                        &mut xml_tree.root,
-                        XmlNodeData::Element(Element {
-                            prefix: None,
-                            name: "device1".to_string(),
-                            children: vec![],
-                        }),
-                    );
-                    XmlTree::append(
-                        &mut xml_tree.root,
-                        XmlNodeData::Element(Element {
-                            prefix: None,
-                            name: "device2".to_string(),
-                            children: vec![],
-                        }),
-                    );
-                    let result: Vec<String> = xml_tree
-                        .root
-                        .borrow_mut()
-                        .children()
-                        .filter_map(|c| match &c.borrow().data {
-                            XmlNodeData::Element(e) => Some(e.name.clone()),
-                            _ => None,
-                        })
-                        .collect();
-                    assert_eq!(result, vec!["device1".to_string(), "device2".to_string()]);
-                }
-        */
     }
     mod referencing_tests {
         use super::*;
@@ -505,9 +481,9 @@ mod tests {
         // use super::*;
     }
     mod move_copy_tests {
-        // use super::*;
-        /*#[test]
-        fn simple_move() {
+        use super::*;
+        #[test]
+        fn simple_rename() {
             test_patch(
                 indoc!(r#"<element>Foo</element>"#),
                 indoc!(
@@ -518,7 +494,65 @@ mod tests {
                 ),
                 indoc!(r#"<new_element>Foo</new_element>"#),
             );
-        }*/
+        }
+        #[test]
+        fn simple_move() {
+            test_patch(
+                indoc!(
+                    r#"<element><subelement><subsubelement>Foo</subsubelement></subelement></element>"#
+                ),
+                indoc!(
+                    r#"
+                    element:
+                      subelement:
+                        subsubelement:
+                          $move: ../subelement2/
+                    "#
+                ),
+                indoc!(
+                    r#"<element><subelement /><subelement2><subsubelement>Foo</subsubelement></subelement2></element>"#
+                ),
+            );
+        }
+        #[test]
+        fn simple_move2() {
+            test_patch(
+                indoc!(
+                    r#"<element><subelement><subsubelement>Foo</subsubelement></subelement></element>"#
+                ),
+                indoc!(
+                    r#"
+                    element:
+                      subelement:
+                        subsubelement:
+                          $move: subelement2/
+                          element: haha
+                    "#
+                ),
+                indoc!(
+                    r#"<element><subelement><subelement2><subsubelement>Foo</subsubelement></subelement2></subelement></element>"#
+                ),
+            );
+        }
+        #[test]
+        fn simple_copy() {
+            test_patch(
+                indoc!(
+                    r#"<element><subelement><subsubelement>Foo</subsubelement></subelement></element>"#
+                ),
+                indoc!(
+                    r#"
+                    element:
+                      subelement:
+                        subsubelement:
+                          $copy: ../subelement2/
+                    "#
+                ),
+                indoc!(
+                    r#"<element><subelement><subsubelement>Foo</subsubelement></subelement><subelement2><subsubelement>Foo</subsubelement></subelement2></element>"#
+                ),
+            );
+        }
     }
     mod modification_tests {
         use super::*;

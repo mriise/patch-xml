@@ -1,12 +1,11 @@
 mod modification_type;
-mod reference_expression;
+pub mod reference_expression;
 mod refex_segment;
 mod regex;
 
 pub use crate::patch_structure::modification_type::ModificationIdentifier;
 use crate::patch_structure::reference_expression::ReferenceExpression;
 use crate::patch_structure::regex::Regex;
-// use crate::xml_structure::xml_path::XmlPath;
 use crate::xml_structure::bidirectional_xml_tree::{XmlNode, XmlNodeData};
 use serde::{
     de::{self},
@@ -23,11 +22,6 @@ pub fn parse(content: &String) -> Result<Option<QueryChildType>, Box<dyn error::
     }
     Ok(Some(serde_yaml::from_str(content)?))
 }
-
-/*fn complex_test_helper(yaml_str: &str, expected_result: QueryChildType) {
-    let result: QueryChildType = serde_yaml::from_str(yaml_str).unwrap();
-    assert_eq!(result, expected_result);
-}*/
 
 #[derive(Debug, PartialEq, Deserialize, Clone)]
 pub struct Query {
@@ -51,7 +45,7 @@ impl From<Vec<(Regex, QueryChildType)>> for Query {
 impl From<Modifier> for Query {
     fn from(modifier: Modifier) -> Self {
         Query {
-            modifier: modifier,
+            modifier,
             modification: None,
             subqueries: HashMap::new(),
         }
@@ -61,7 +55,7 @@ impl From<Option<ValueType>> for Query {
     fn from(modification: Option<ValueType>) -> Self {
         Query {
             modifier: Modifier::new(),
-            modification: modification,
+            modification,
             subqueries: HashMap::new(),
         }
     }
@@ -95,7 +89,7 @@ pub enum QueryChildType {
 pub struct Modifier {
     #[serde(rename = "$if")]
     pub filter: Option<FilterExpression>,
-    #[serde(rename = "$rename", alias = "$move")]
+    #[serde(rename = "$move")]
     pub move_to: Option<ReferenceExpression>,
     #[serde(rename = "$copy")]
     pub copy: Option<ReferenceExpression>,
@@ -133,7 +127,7 @@ impl From<Vec<(ModificationIdentifier, ValueType)>> for Value {
 impl From<Modifier> for Value {
     fn from(modifier: Modifier) -> Self {
         Value {
-            modifier: modifier,
+            modifier,
             subvalues: HashMap::new(),
         }
     }
@@ -443,7 +437,7 @@ mod tests {
                 indoc! {r#"
                     elementa:
                       $if: "pattern"
-                      $rename: "some other place"
+                      $move: "some other place"
                       $copy: "some place"
                       $modify: "hello world"
                   "#},

@@ -1,3 +1,5 @@
+use crate::patch_structure::reference_expression::ReferenceExpression;
+use itertools::Itertools;
 use regex::Regex;
 use std::cell::RefCell;
 use std::ops::{Deref, DerefMut};
@@ -112,6 +114,11 @@ pub struct XmlNode {
     pub data: XmlNodeData,
 }
 
+pub enum MoveCopyAction {
+    Move,
+    Copy,
+}
+
 impl XmlNode {
     pub fn children(&self) -> XmlNodeIntoIterator {
         match &self.data {
@@ -168,9 +175,19 @@ impl XmlNode {
             _ => None,
         }
     }
+    pub fn set_name(&mut self, new_name: &String) -> bool {
+        match &mut self.data {
+            XmlNodeData::Element(e) => {
+                e.name = new_name.clone();
+                true
+            }
+            _ => false,
+        }
+    }
     pub fn get_node_info_by_path(
         current_node: Rc<RefCell<XmlNode>>,
         path: Vec<String>,
+        auto_create: bool,
     ) -> Rc<RefCell<XmlNode>> {
         let mut current_node = current_node.clone();
         for segment in &path {
@@ -196,7 +213,21 @@ impl XmlNode {
                         .collect();
                     current_node = match &children_candidates.len() {
                         1 => children_candidates.first().unwrap().clone().1,
-                        0 => panic!("Path not found!"),
+                        0 => {
+                            if auto_create {
+                                XmlTree::append(
+                                    &current_node,
+                                    XmlNodeData::Element(Element {
+                                        prefix: None,
+                                        name: queried_name.to_string(),
+                                        applied_regexp: None,
+                                        children: vec![],
+                                    }),
+                                )
+                            } else {
+                                panic!("Path not found!")
+                            }
+                        }
                         _ => panic!("More than one XML node is matching the path!"),
                     };
                 }
@@ -214,6 +245,75 @@ impl XmlNode {
         match &self.data {
             XmlNodeData::Element(e) => e.applied_regexp.clone(),
             _ => None,
+        }
+    }
+    pub fn deep_clone(node: Rc<RefCell<XmlNode>>) -> Rc<RefCell<XmlNode>> {
+        let (node_data, children) = match &node.borrow().data {
+            XmlNodeData::Element(e) => (
+                XmlNodeData::Element(e.deep_clone()),
+                Some(e.children.clone()),
+            ),
+            XmlNodeData::Comment(s) => (XmlNodeData::Comment(s.clone()), None),
+            XmlNodeData::CData(s) => (XmlNodeData::CData(s.clone()), None),
+            XmlNodeData::Text(s) => (XmlNodeData::Text(s.clone()), None),
+            XmlNodeData::ProcessingInstruction(k, v) => (
+                XmlNodeData::ProcessingInstruction(k.clone(), v.clone()),
+                None,
+            ),
+        };
+        let cloned = Rc::new(RefCell::new(XmlNode {
+            parent: None,
+            data: node_data,
+        }));
+        match children {
+            None => {}
+            Some(children) => {
+                for c in children {
+                    let cloned_child = (&XmlNode::deep_clone(c).borrow().data).clone();
+                    XmlTree::append(&cloned, cloned_child);
+                }
+            }
+        }
+        cloned
+    }
+    pub fn move_copy_node(
+        xml_parent_node: &Rc<RefCell<XmlNode>>,
+        move_copy_expression: &ReferenceExpression,
+        move_copy: MoveCopyAction,
+    ) {
+        //Moving parent_node to somewhere else...
+        let move_expression = move_copy_expression.evaluate(xml_parent_node);
+        let path = move_expression.split("/").map(String::from);
+        let mut path = path.collect_vec();
+        let new_name = path.pop().unwrap();
+        if !new_name.is_empty() {
+            if !xml_parent_node.borrow_mut().set_name(&new_name) {
+                panic!("Could not set name \"{}\" for XML node.", new_name)
+            }
+        }
+        if !path.is_empty() {
+            //Start searching from parent of parent_node (the location of parent_node)...
+            let parent_parent_node = match &xml_parent_node.borrow().parent {
+                None => panic!("Root node is not allowed to be moved..."),
+                Some(p) => p.upgrade().unwrap(),
+            };
+            let new_parent_node =
+                XmlNode::get_node_info_by_path(parent_parent_node.clone(), path, true);
+            match move_copy {
+                MoveCopyAction::Move => {
+                    XmlNode::remove(xml_parent_node.clone());
+                    let xml_node_data = xml_parent_node.borrow().data.clone();
+                    XmlTree::append(&new_parent_node, xml_node_data);
+                }
+                MoveCopyAction::Copy => {
+                    // Copying...
+                    let xml_node_data = XmlNode::deep_clone(xml_parent_node.clone())
+                        .borrow()
+                        .data
+                        .clone();
+                    XmlTree::append(&new_parent_node, xml_node_data.clone());
+                }
+            }
         }
     }
 }
@@ -293,6 +393,17 @@ pub struct Element {
     pub applied_regexp: Option<Regex>,
 
     pub children: Vec<Rc<RefCell<XmlNode>>>,
+}
+
+impl Element {
+    pub fn deep_clone(&self) -> Element {
+        Element {
+            prefix: self.prefix.clone(),
+            name: self.name.clone(),
+            applied_regexp: self.applied_regexp.clone(),
+            children: vec![],
+        }
+    }
 }
 
 impl PartialEq for Element {
