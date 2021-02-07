@@ -1,8 +1,9 @@
-use crate::patch_structure::{self, QueryChildType, Value, ValueType};
-use crate::xml_structure::bidirectional_xml_tree::*;
 use std::cell::RefCell;
 use std::fs::File;
 use std::rc::Rc;
+
+use crate::patch_structure::{self, Query, Value};
+use crate::xml_structure::bidirectional_xml_tree::*;
 
 pub struct PatchProcessor {
     pub xml_tree: XmlTree,
@@ -11,7 +12,6 @@ pub struct PatchProcessor {
 impl PatchProcessor {
     pub fn new(xml_string: &str) -> PatchProcessor {
         PatchProcessor {
-            //Encapsulate parsed xml-tree to simplify traversal
             xml_tree: XmlTree::new(&xmltree::Element::parse(xml_string.as_bytes()).unwrap()),
         }
     }
@@ -26,124 +26,32 @@ impl PatchProcessor {
         }
     }
     //ToDo: return Result-Type
-    pub fn apply(&mut self, patch: &QueryChildType) {
-        // let path = XmlPath::new();
+    pub fn apply(&mut self, patch: &Query) {
         //Go through patch rules and apply each on the given xml-structure
         //Work just on one xml structure. Each entry is executed on the result of the previous one
-        //Self::apply_query(&(patch), &self.xml_tree.root);
-
-        match patch {
-            QueryChildType::SimpleValue(_) => {
-                panic!("A simple value on root level is not allowed in the patch file")
-            }
-            QueryChildType::QuerySet(queries) => {
-                Self::apply_queries(
-                    queries,
-                    &Rc::new(RefCell::new(XmlNode {
-                        parent: None,
-                        data: XmlNodeData::Element(Element {
-                            prefix: None,
-                            name: "internal_root".to_string(),
-                            applied_regexp: None,
-                            children: vec![self.xml_tree.root.clone()],
-                        }),
-                    })),
-                );
-            }
-        }
-    }
-    fn apply_queries(
-        queries: &Vec<patch_structure::Query>,
-        xml_parent_node: &Rc<RefCell<XmlNode>>,
-    ) {
-        if queries.len() == 0 {
-            // If empty set is assigned to a query: Clear the corresponding element
-            xml_parent_node.borrow_mut().clear_children();
-        } else {
-            for query in queries {
-                //What do we get for each found query?
-                //  - List of selection structures (selection list) that contains
-                //      - The individual element name of the children flattened from...
-                //          - each pattern entry
-                //          - each match per pattern entry
-                //      - The RegExp-Match for referencing reasons
-
-                //Constraints:
-                //  - Move, copy and modify are not allowed on root-level (no empty path!)
-                //  - No filtering, initially. First get an answer for following question:
-                //      - How to deal with filtering ($if)? It should be...
-                //          - intuitive
-                //          - flexible (and/or/greater/lesser/prefix,...)
-                //          - referencable
-
-                //What will we do for each found subelement?
-                //  1. Run filter ($if). If filter is not matching: Skip!
-                //  2. Run apply_query_child_type for each elemment in selection list by appending the path by their individual name
-                if query.subqueries.len() == 0
-                    && !query.modifier.is_modifying()
-                    && query.modification.is_none()
-                {
-                    // If empty set is assigned to a query: Clear the corresponding element
-                    xml_parent_node.borrow_mut().clear_children();
-                } else {
-                    for subquery in &query.subqueries {
-                        let children = xml_parent_node.borrow_mut().children();
-                        for child_candidate in children {
-                            let name = match &child_candidate.borrow().name() {
-                                Some(name) => Some(name.clone()),
-                                None => None,
-                            };
-                            match name {
-                                Some(name) => {
-                                    if subquery.0.regex.is_match(name.as_str()) {
-                                        child_candidate
-                                            .borrow_mut()
-                                            .set_regex(Some(subquery.0.regex.clone()));
-                                        Self::apply_query_child_type(subquery.1, &child_candidate);
-                                        child_candidate.borrow_mut().set_regex(None);
-                                    }
-                                }
-                                None => {}
-                            }
-                        }
-                    }
-                }
-                //  3. Run applyModifications on current path
-                match &query.modification {
-                    None => {}
-                    Some(value_type) => {
-                        Self::modify(&value_type, &xml_parent_node);
-                    }
-                }
-                //  4. Run move/copy on current path
-                match &query.modifier.copy {
-                    None => {}
-                    Some(copy_expression) => XmlNode::move_copy_node(
-                        &xml_parent_node,
-                        copy_expression,
-                        MoveCopyAction::Copy,
-                    ),
-                }
-                match &query.modifier.move_to {
-                    None => {}
-                    Some(move_expression) => XmlNode::move_copy_node(
-                        &xml_parent_node,
-                        move_expression,
-                        MoveCopyAction::Move,
-                    ),
-                }
-            }
-        }
+        Self::apply_query(
+            &patch,
+            &Rc::new(RefCell::new(XmlNode {
+                parent: None,
+                //Encapsulate parsed xml-tree to simplify traversal
+                data: XmlNodeData::Element(Element {
+                    prefix: None,
+                    name: "internal_root".to_string(),
+                    applied_regexp: None,
+                    children: vec![self.xml_tree.root.clone()],
+                }),
+            })),
+        );
     }
     /**
     This method applies a QueryChildType on a given XML element. Depending on the type either:
       - a simple value is assigned
       - or the recursion will continue
      **/
-    fn apply_query_child_type(query_child_type: &QueryChildType, xml_node: &Rc<RefCell<XmlNode>>) {
+    fn apply_query(query: &Query, xml_node: &Rc<RefCell<XmlNode>>) {
         // Do we have a simple value assignment or sub-queries?
-        match query_child_type {
-            QueryChildType::SimpleValue(v) => {
+        match query {
+            Query::Simple(v) => {
                 // Apply the simple value:
                 match v.to_xml_node(xml_node) {
                     None => {
@@ -159,19 +67,89 @@ impl PatchProcessor {
                     }
                 }
             }
-            QueryChildType::QuerySet(qs) => {
-                if qs.len() == 0 {
+            Query::Complex {
+                modifier,
+                modification,
+                subqueries,
+            } => {
+                if subqueries.len() == 0
+                    && modification.is_none()
+                    && modifier.copy.is_none()
+                    && modifier.move_to.is_none()
+                {
                     // If empty set is assigned to a query: Clear the corresponding element
                     xml_node.borrow_mut().clear_children();
                 } else {
-                    Self::apply_queries(qs, &xml_node);
+                    for (regex, query) in subqueries {
+                        //What do we get for each found query?
+                        //  - List of selection structures (selection list) that contains
+                        //      - The individual element name of the children flattened from...
+                        //          - each pattern entry
+                        //          - each match per pattern entry
+                        //      - The RegExp-Match for referencing reasons
+
+                        //Constraints:
+                        //  - Move, copy and modify are not allowed on root-level (no empty path!)
+                        //  - No filtering, initially. First get an answer for following question:
+                        //      - How to deal with filtering ($if)? It should be...
+                        //          - intuitive
+                        //          - flexible (and/or/greater/lesser/prefix,...)
+                        //          - referencable
+
+                        //What will we do for each found subelement?
+                        //  1. Run filter ($if). If filter is not matching: Skip!
+                        //  2. Run apply_query_child_type for each elemment in selection list by appending the path by their individual name
+                        let children = xml_node.borrow_mut().children();
+                        for child_candidate in children {
+                            let name = match &child_candidate.borrow().name() {
+                                Some(name) => Some(name.clone()),
+                                None => None,
+                            };
+                            match name {
+                                Some(name) => {
+                                    if regex.regex.is_match(name.as_str()) {
+                                        child_candidate
+                                            .borrow_mut()
+                                            .set_regex(Some(regex.regex.clone()));
+                                        Self::apply_query(&query, &child_candidate);
+                                        child_candidate.borrow_mut().set_regex(None);
+                                    }
+                                }
+                                None => {}
+                            }
+                        }
+                    }
+                    //  3. Run applyModifications on current path
+                    match &modification {
+                        None => {}
+                        Some(value_type) => {
+                            Self::modify(&value_type, &xml_node);
+                        }
+                    }
+                    //  4. Run move/copy on current path
+                    match &modifier.copy {
+                        None => {}
+                        Some(copy_expression) => XmlNode::move_copy_node(
+                            &xml_node,
+                            copy_expression,
+                            MoveCopyAction::Copy,
+                        ),
+                    }
+                    match &modifier.move_to {
+                        None => {}
+                        Some(move_expression) => XmlNode::move_copy_node(
+                            &xml_node,
+                            move_expression,
+                            MoveCopyAction::Move,
+                        ),
+                    }
                 }
             }
         }
     }
-    pub fn modify(value_type: &ValueType, current_node: &Rc<RefCell<XmlNode>>) {
+    pub fn modify(value_type: &Value, current_node: &Rc<RefCell<XmlNode>>) {
         match value_type {
-            ValueType::SimpleValue(v) => {
+            Value::SimpleValue(v) => {
                 current_node.borrow_mut().clear_children();
                 match v.to_xml_node(&current_node) {
                     None => {}
@@ -180,34 +158,35 @@ impl PatchProcessor {
                     }
                 }
             }
-            ValueType::ComplexValues(values) => {
-                for Value { subvalues, .. } in values {
-                    for (mod_type, value_type) in subvalues {
-                        let mut updated = false;
-                        if mod_type.mod_type.is_modify() {
-                            for child in current_node.borrow().children() {
-                                //ToDo: Evaluation must be applied correctly
-                                let name = child.borrow().name();
-                                if name.is_some()
-                                    && name.unwrap() == mod_type.identifier.evaluate(current_node)
-                                {
-                                    updated = true;
-                                    Self::modify(value_type, &child);
-                                }
+            Value::ComplexValues {
+                modifier,
+                subvalues,
+            } => {
+                for (mod_type, value_type) in subvalues {
+                    let mut updated = false;
+                    if mod_type.mod_type.is_modify() {
+                        for child in current_node.borrow().children() {
+                            //ToDo: Evaluation must be applied correctly
+                            let name = child.borrow().name();
+                            if name.is_some()
+                                && name.unwrap() == mod_type.identifier.evaluate(current_node)
+                            {
+                                updated = true;
+                                Self::modify(value_type, &child);
                             }
                         }
-                        if updated == false && !mod_type.mod_type.is_replace() {
-                            let new_child = XmlTree::append(
-                                current_node,
-                                XmlNodeData::Element(Element {
-                                    prefix: None,
-                                    name: mod_type.identifier.evaluate(current_node),
-                                    applied_regexp: None,
-                                    children: vec![],
-                                }),
-                            );
-                            Self::modify(value_type, &new_child);
-                        }
+                    }
+                    if updated == false && !mod_type.mod_type.is_replace() {
+                        let new_child = XmlTree::append(
+                            current_node,
+                            XmlNodeData::Element(Element {
+                                prefix: None,
+                                name: mod_type.identifier.evaluate(current_node),
+                                applied_regexp: None,
+                                children: vec![],
+                            }),
+                        );
+                        Self::modify(value_type, &new_child);
                     }
                 }
             }
@@ -217,8 +196,9 @@ impl PatchProcessor {
 
 #[cfg(test)]
 mod tests {
-    use super::*;
     use indoc::indoc;
+
+    use super::*;
 
     fn test_patch(xml_str: &str, yaml_str: &str, expected_result: &str) {
         let mut processor = PatchProcessor::new(xml_str);
@@ -359,6 +339,7 @@ mod tests {
     }
     mod referencing_tests {
         use super::*;
+
         #[test]
         fn referencing_query_named() {
             test_patch(
@@ -445,6 +426,7 @@ mod tests {
     }
     mod multi_query_tests {
         use super::*;
+
         #[test]
         fn successive_change() {
             test_patch(
@@ -482,6 +464,7 @@ mod tests {
     }
     mod move_copy_tests {
         use super::*;
+
         #[test]
         fn simple_rename() {
             test_patch(
@@ -515,6 +498,27 @@ mod tests {
             );
         }
         #[test]
+        fn simple_change_and_move() {
+            test_patch(
+                indoc!(
+                    r#"<element><subelement><subsubelement>Foo</subsubelement></subelement></element>"#
+                ),
+                indoc!(
+                    r#"
+                    element:
+                      subelement:
+                        subsubelement:
+                          $move: ../subelement2/
+                          $modify:
+                              subsubsubelement: 34
+                    "#
+                ),
+                indoc!(
+                    r#"<element><subelement /><subelement2><subsubelement>Foo<subsubsubelement>34</subsubsubelement></subsubelement></subelement2></element>"#
+                ),
+            );
+        }
+        #[test]
         fn simple_move2() {
             test_patch(
                 indoc!(
@@ -526,7 +530,6 @@ mod tests {
                       subelement:
                         subsubelement:
                           $move: subelement2/
-                          element: haha
                     "#
                 ),
                 indoc!(
@@ -556,6 +559,7 @@ mod tests {
     }
     mod modification_tests {
         use super::*;
+
         #[test]
         fn simple_update() {
             test_patch(
