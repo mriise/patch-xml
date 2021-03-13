@@ -190,7 +190,7 @@ mod tests {
         }
     }
     mod filter_tests {
-        use value::{SimpleValueType, Value};
+        use value::SimpleValueType;
 
         use super::*;
 

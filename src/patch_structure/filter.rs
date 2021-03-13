@@ -40,11 +40,11 @@ impl Filter {
 
     fn visit_str(s: &str) -> Filter {
         if s.starts_with("^") {
-            if s.ends_with("$") {
-                return Filter::Regex(Regex::from(&s[1..s.len() - 1]));
+            return if s.ends_with("$") {
+                Filter::Regex(Regex::from(&s[1..s.len() - 1]))
             } else {
-                return Filter::Regex(Regex::from(s.split_at(1).1));
-            }
+                Filter::Regex(Regex::from(s.split_at(1).1))
+            };
         }
 
         let (prefix, value) = if s.starts_with("<") {
