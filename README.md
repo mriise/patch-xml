@@ -6,7 +6,7 @@
 
 ***patch-xml* is a tool and library that reads and patches XML files.**
 
-##Usage
+## Usage
 
 The usage and syntax will be described here as soon as the interface is stable.
 
