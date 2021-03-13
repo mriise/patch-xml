@@ -1,4 +1,4 @@
-use crate::patch_structure::reference_expression::ReferenceExpression;
+use crate::patch_structure::ReferenceExpression;
 use itertools::Itertools;
 use regex::Regex;
 use std::cell::RefCell;
