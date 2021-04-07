@@ -8,8 +8,6 @@ pub use query::Query;
 pub use reference_expression::ReferenceExpression;
 pub use value::Value;
 
-use self::regex::Regex;
-
 mod filter;
 mod modification_type;
 mod query;
@@ -50,6 +48,7 @@ impl Modifier {
 
 #[cfg(test)]
 mod tests {
+    use self::regex::Regex;
     use indoc::indoc;
 
     use super::*;

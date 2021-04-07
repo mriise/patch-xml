@@ -1,9 +1,9 @@
 use std::cell::RefCell;
-use std::fs::File;
 use std::rc::Rc;
 
-use crate::patch_structure::{self, Query, Value};
+use crate::patch_structure::{Query, Value};
 use crate::xml_structure::bidirectional_xml_tree::*;
+use std::fs::File;
 
 pub struct PatchProcessor {
     pub xml_tree: XmlTree,
@@ -15,6 +15,7 @@ impl PatchProcessor {
             xml_tree: XmlTree::new(&xmltree::Element::parse(xml_string.as_bytes()).unwrap()),
         }
     }
+    #[allow(dead_code)]
     pub fn write_result(&self, path: &String) {
         match self
             .xml_tree
@@ -158,10 +159,7 @@ impl PatchProcessor {
                     }
                 }
             }
-            Value::ComplexValues {
-                modifier,
-                subvalues,
-            } => {
+            Value::ComplexValues { subvalues, .. } => {
                 for (mod_type, value_type) in subvalues {
                     let mut updated = false;
                     if mod_type.mod_type.is_modify() {
@@ -199,6 +197,7 @@ mod tests {
     use indoc::indoc;
 
     use super::*;
+    use crate::patch_structure;
 
     fn test_patch(xml_str: &str, yaml_str: &str, expected_result: &str) {
         let mut processor = PatchProcessor::new(xml_str);
