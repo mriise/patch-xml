@@ -1,23 +1,9 @@
-mod input;
-mod output;
+pub mod output;
 
-pub fn get_parent_directory(path: &String) -> String {
-    std::path::Path::new(path)
-        .parent()
-        .expect("Expected file in a directory.")
-        .to_str()
-        .unwrap()
-        .to_string()
-}
-
-pub fn read_svd_config(config_path: &String) -> output::Svd {
-    let base_conf_path = get_parent_directory(config_path);
-    let yaml = input::config::Config::read(&config_path);
-    println!(
-        "Config read result: {}",
-        serde_yaml::to_string(&yaml).unwrap()
-    );
-    let mut svd = input::svd::Svd::read(base_conf_path + &"/" + yaml.svd.as_str());
-    yaml.merge_into(&mut svd);
-    svd.to_output()
+pub fn get_patched_svd(
+    svd_content: String,
+    patch_content: String,
+) -> Result<output::Device, serde_xml_rs::Error> {
+    let patched_svd = patch_xml::patch_to_xml(svd_content, patch_content);
+    serde_xml_rs::from_reader(patched_svd.as_bytes())
 }

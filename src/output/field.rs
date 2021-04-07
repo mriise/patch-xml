@@ -1,25 +1,35 @@
 use super::{
-    AccessType, DimElementGroup, EnumeratedValue, EnumeratedValuesUsage, ModifiedWriteValues,
-    ReadAction, WriteConstraint,
+    AccessType, EnumeratedValue, EnumeratedValuesUsage, ModifiedWriteValues, ReadAction,
+    WriteConstraint,
 };
-use serde::Serialize;
+use crate::output::{DimArrayIndex, SvdConstant};
+use serde::Deserialize;
 
-#[derive(Debug, Serialize, Eq, PartialEq, Clone)]
+#[derive(Debug, Deserialize, Eq, PartialEq, Clone)]
 #[serde(rename_all = "camelCase")]
 pub struct Field {
     pub derived_from: Option<String>,
-    pub dim_element: DimElementGroup,
+    pub dim: Option<SvdConstant>,
+    pub dim_increment: Option<SvdConstant>,
+    pub dim_index: Option<SvdConstant>,
+    pub dim_name: Option<String>,
+    pub dim_array_index: Option<DimArrayIndex>,
     pub name: String,
     pub description: Option<String>,
-    pub mask: u32,
+    pub bit_offset: Option<SvdConstant>,
+    pub bit_width: Option<SvdConstant>,
+    pub lsb: Option<SvdConstant>,
+    pub msb: Option<SvdConstant>,
+    pub bit_range: Option<SvdConstant>,
     pub access: Option<AccessType>,
     pub modified_write_values: Option<ModifiedWriteValues>,
     pub write_constraint: Option<WriteConstraint>,
     pub read_action: Option<ReadAction>,
-    pub enumerated_values: EnumAccessType,
+    pub enumerated_values: Option<EnumAccessType>,
 }
 
-#[derive(Debug, Serialize, Eq, PartialEq, Clone)]
+#[derive(Debug, Deserialize, Eq, PartialEq, Clone)]
+#[serde(rename_all = "camelCase")]
 pub struct EnumeratedValues {
     pub derived_from: Option<String>,
     pub name: Option<String>,
@@ -28,7 +38,7 @@ pub struct EnumeratedValues {
     pub enumerated_value: Vec<EnumeratedValue>,
 }
 
-#[derive(Debug, Serialize, Eq, PartialEq, Clone)]
+#[derive(Debug, Deserialize, Eq, PartialEq, Clone)]
 pub enum EnumAccessType {
     ReadAndWrite(EnumeratedValues),
     ReadWrite {
@@ -37,5 +47,4 @@ pub enum EnumAccessType {
     },
     Read(EnumeratedValues),
     Write(EnumeratedValues),
-    None,
 }

@@ -1,8 +1,8 @@
-use super::{EndianType, Peripheral, RegisterPropertiesGroup};
-use crate::output::Protection;
-use serde::Serialize;
+use super::{EndianType, Peripheral};
+use crate::output::{AccessType, Protection, SvdConstant};
+use serde::Deserialize;
 
-#[derive(Serialize, Clone)]
+#[derive(Deserialize, Clone, Debug, Eq, PartialEq)]
 #[serde(rename_all = "camelCase")]
 pub struct Device {
     pub schema_version: String,
@@ -15,14 +15,18 @@ pub struct Device {
     pub license_text: Option<String>,
     pub cpu: Cpu,
     pub header_system_filename: Option<String>,
-    pub header_definition_prefix: Option<String>,
-    pub address_unit_bits: u32,
-    pub width: u32,
-    pub register_properties: RegisterPropertiesGroup,
-    pub peripherals: Vec<Peripheral>,
+    pub header_definitions_prefix: Option<String>,
+    pub address_unit_bits: SvdConstant,
+    pub width: SvdConstant,
+    pub size: Option<SvdConstant>,
+    pub access: Option<AccessType>,
+    pub protection: Option<Protection>,
+    pub reset_value: Option<SvdConstant>,
+    pub reset_mask: Option<SvdConstant>,
+    pub peripherals: Peripherals,
 }
 
-#[derive(Debug, Serialize, Eq, PartialEq, Clone)]
+#[derive(Debug, Deserialize, Eq, PartialEq, Clone)]
 #[serde(rename_all = "camelCase")]
 pub struct Cpu {
     pub name: String,
@@ -37,27 +41,39 @@ pub struct Cpu {
     pub itcm_present: Option<bool>,
     pub dtcm_present: Option<bool>,
     pub vtor_present: Option<bool>,
-    pub nvic_prio_bits: u32,
+    pub nvic_prio_bits: SvdConstant,
     pub vendor_systick_config: bool,
-    pub device_num_interrupts: Option<u32>,
-    pub sau_num_regions: Option<u32>,
+    pub device_num_interrupts: Option<SvdConstant>,
+    pub sau_num_regions: Option<SvdConstant>,
     pub sau_regions_config: Option<SauRegionsConfigType>,
 }
 
-#[derive(Debug, Serialize, Eq, PartialEq, Clone)]
+#[derive(Debug, Deserialize, Eq, PartialEq, Clone)]
 #[serde(rename_all = "camelCase")]
 pub struct SauRegionsConfigType {
     pub enabled: Option<bool>,
     pub protection_when_disabled: Option<Protection>,
-    pub regions: Vec<SauRegionType>,
+    pub regions: Option<SauRegionsType>,
 }
 
-#[derive(Debug, Serialize, Eq, PartialEq, Clone)]
+#[derive(Debug, Deserialize, Eq, PartialEq, Clone)]
+#[serde(rename_all = "camelCase")]
+pub struct SauRegionsType {
+    pub region: Vec<SauRegionType>,
+}
+
+#[derive(Debug, Deserialize, Eq, PartialEq, Clone)]
 #[serde(rename_all = "camelCase")]
 pub struct SauRegionType {
     pub enabled: Option<bool>,
     pub name: Option<String>,
-    pub base: u32,
-    pub limit: u32,
+    pub base: SvdConstant,
+    pub limit: SvdConstant,
     pub access: String,
+}
+
+#[derive(Debug, Deserialize, Eq, PartialEq, Clone)]
+#[serde(rename_all = "camelCase")]
+pub struct Peripherals {
+    pub peripheral: Vec<Peripheral>,
 }
