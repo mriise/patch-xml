@@ -10,11 +10,12 @@ repository = "https://github.com/VilNeo/patch-xml"
 keywords = ["xml", "patch"]
 
 [dependencies]
-xmltree = "0.10"
+xmltree = {version = "0.10", features = ["attribute-order"] }
 serde = { version = "1.0", features = ["derive"] }
 serde_yaml = "0.8"
 regex = "1"
 itertools = "0.10"
+indexmap = {version = "1.6.2", features = ["serde"] }
 
 [dev-dependencies]
 indoc = "1.0"

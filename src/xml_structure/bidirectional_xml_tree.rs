@@ -25,6 +25,11 @@ impl XmlTree {
         Element {
             prefix: xmltree_element.prefix.clone(),
             name: xmltree_element.name.clone(),
+            attributes: xmltree_element
+                .attributes
+                .iter()
+                .map(|(k, v)| (k.clone(), v.clone()))
+                .collect(),
             applied_regexp: None,
             children: vec![],
         }
@@ -98,7 +103,11 @@ impl XmlTree {
             namespace: None,
             namespaces: None,
             name: element.name.clone(),
-            attributes: Default::default(),
+            attributes: element
+                .attributes
+                .iter()
+                .map(|(k, v)| (k.clone(), v.clone()))
+                .collect(),
             children: element
                 .children
                 .iter()
@@ -220,6 +229,7 @@ impl XmlNode {
                                     XmlNodeData::Element(Element {
                                         prefix: None,
                                         name: queried_name.to_string(),
+                                        attributes: Vec::new(),
                                         applied_regexp: None,
                                         children: vec![],
                                     }),
@@ -392,6 +402,8 @@ pub struct Element {
     //This regular expression is set while traversing down the XML-tree. When going back, it is resetted again.
     pub applied_regexp: Option<Regex>,
 
+    pub attributes: Vec<(String, String)>,
+
     pub children: Vec<Rc<RefCell<XmlNode>>>,
 }
 
@@ -400,6 +412,7 @@ impl Element {
         Element {
             prefix: self.prefix.clone(),
             name: self.name.clone(),
+            attributes: self.attributes.clone(),
             applied_regexp: self.applied_regexp.clone(),
             children: vec![],
         }
@@ -441,6 +454,7 @@ mod tests {
                     data: XmlNodeData::Element(Element {
                         prefix: None,
                         name: "element".to_string(),
+                        attributes: Vec::new(),
                         applied_regexp: None,
                         children: vec![],
                     }),

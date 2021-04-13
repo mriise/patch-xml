@@ -3,7 +3,7 @@ use core::fmt;
 use serde::de;
 
 use crate::patch_structure::regex::Regex;
-use crate::patch_structure::value::SimpleValueType;
+use crate::patch_structure::SimpleValueType;
 
 pub enum FilterVariant {
     And,
@@ -12,7 +12,6 @@ pub enum FilterVariant {
 
 #[derive(Debug, PartialEq, Clone)]
 pub enum Filter {
-    // A feature in the future: Consecutive subelements can be filtered with arrays
     And(Vec<Filter>),
     Or(Vec<Filter>),
     Child((Regex, Box<Filter>)),
@@ -62,7 +61,7 @@ impl Filter {
         } else {
             (Comparator::Equals, s)
         };
-        let (prefix, value) = (prefix, SimpleValueType::from(value.to_string()));
+        let (prefix, value) = (prefix, serde_yaml::from_str(value).unwrap());
 
         Filter::Expression(prefix, value)
     }

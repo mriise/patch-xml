@@ -4,9 +4,10 @@ use serde::Deserialize;
 
 pub use filter::{Comparator, Filter};
 pub use modification_type::ModificationIdentifier;
-pub use query::Query;
+pub use query::{ComplexQuery, Query};
 pub use reference_expression::ReferenceExpression;
-pub use value::Value;
+pub use simple_value_type::SimpleValueType;
+pub use value::{ComplexValue, ModificationValue};
 
 mod filter;
 mod modification_type;
@@ -14,6 +15,7 @@ mod query;
 mod reference_expression;
 mod refex_segment;
 mod regex;
+mod simple_value_type;
 mod value;
 
 pub fn parse(content: &String) -> Result<Option<Query>, Box<dyn error::Error>> {
@@ -49,6 +51,7 @@ impl Modifier {
 #[cfg(test)]
 mod tests {
     use self::regex::Regex;
+    use indexmap::indexmap;
     use indoc::indoc;
 
     use super::*;
@@ -59,13 +62,13 @@ mod tests {
     }
 
     mod query_tests {
-        use value::SimpleValueType;
 
         use super::*;
+        use crate::patch_structure::query::ComplexQuery;
 
         fn simple_value_test_helper(yaml_str: &str, simple_value_type: &SimpleValueType) {
             let result: Query = serde_yaml::from_str(yaml_str).unwrap();
-            let expected_result = Query::Complex {
+            let expected_result = Query::Complex(ComplexQuery {
                 modifier: Modifier::new(),
                 modification: None,
                 subqueries: [(
@@ -75,7 +78,7 @@ mod tests {
                 .iter()
                 .cloned()
                 .collect(),
-            };
+            });
             assert_eq!(result, expected_result);
         }
 
@@ -127,13 +130,10 @@ mod tests {
 
         #[test]
         fn test_nested_queries() {
-            let expected_result = Query::from(vec![(
-                Regex::from("elementa"),
-                Query::from(vec![(
-                    Regex::from("elementb"),
-                    Query::Simple(SimpleValueType::Remove),
-                )]),
-            )]);
+            let expected_result = Query::from(indexmap! {
+                Regex::from("elementa") =>
+                Query::from(indexmap!{ Regex::from("elementb") => Query::Simple(SimpleValueType::Remove) }),
+            });
             complex_test_helper(
                 indoc! {r#"
                     elementa:
@@ -144,40 +144,46 @@ mod tests {
         }
 
         #[test]
-        fn test_query_lists() {
-            let expected_result = Query::from(vec![(
-                Regex::from("elementa"),
-                Query::from(vec![
-                    (
-                        Regex::from("elementb"),
-                        Query::Simple(SimpleValueType::Remove),
-                    ),
-                    (
-                        Regex::from("elementb"),
-                        Query::Simple(SimpleValueType::Remove),
-                    ),
-                ]),
-            )]);
+        fn test_query_duplicate_keys() {
+            let expected_result = Query::from(indexmap! {
+                Regex::from("elementa") =>
+                Query::from(indexmap! {
+                    Regex::from("elementb") =>
+                    Query::Simple(SimpleValueType::Remove),
+                    Regex::from("elementb") =>
+                    Query::Simple(SimpleValueType::Remove),
+                }),
+            });
             complex_test_helper(
                 indoc! {r#"
                     elementa:
-                      - elementb: ~
-                      - elementb: ~
+                      elementb: ~
+                      elementb: ~
                   "#},
                 expected_result,
             );
         }
         #[test]
         fn test_root_query_lists() {
-            let expected_result = Query::from(vec![
-                (
-                    Regex::from("elementa"),
-                    Query::Simple(SimpleValueType::Pattern(ReferenceExpression::from("hello"))),
-                ),
-                (
-                    Regex::from("elementa"),
-                    Query::Simple(SimpleValueType::Pattern(ReferenceExpression::from("world"))),
-                ),
+            let expected_result = Query::ComplexVec(vec![
+                ComplexQuery {
+                    modifier: Modifier {
+                        filter: None,
+                        move_to: None,
+                        copy: None,
+                    },
+                    modification: None,
+                    subqueries: indexmap! { Regex::from("elementa") => Query::Simple(SimpleValueType::Pattern(ReferenceExpression::from("hello"))) },
+                },
+                ComplexQuery {
+                    modifier: Modifier {
+                        filter: None,
+                        move_to: None,
+                        copy: None,
+                    },
+                    modification: None,
+                    subqueries: indexmap! { Regex::from("elementa") => Query::Simple(SimpleValueType::Pattern(ReferenceExpression::from("world"))) },
+                },
             ]);
             complex_test_helper(
                 indoc! {r#"
@@ -189,46 +195,45 @@ mod tests {
         }
     }
     mod filter_tests {
-        use value::SimpleValueType;
-
         use super::*;
+        use indexmap::IndexMap;
 
         #[test]
         fn test_simple_filter() {
-            let expected_result = Query::Complex {
+            let expected_result = Query::Complex(ComplexQuery {
                 modifier: Modifier::new(),
                 modification: None,
-                subqueries: vec![(
-                    Regex::from("elementa"),
-                    Query::Complex {
+                subqueries: indexmap! {
+                    Regex::from("elementa") =>
+                    Query::Complex(ComplexQuery {
                         modifier: Modifier {
                             filter: Some(Filter::And(vec![
                                 Filter::Child((
                                     Regex::from("subelement1"),
                                     Box::new(Filter::Expression(
                                         Comparator::Equals,
-                                        SimpleValueType::from("true".to_string()),
+                                        SimpleValueType::Boolean(true),
                                     )),
                                 )),
                                 Filter::Child((
                                     Regex::from("subelement2"),
                                     Box::new(Filter::Expression(
                                         Comparator::GreaterThan,
-                                        SimpleValueType::from("4".to_string()),
+                                        SimpleValueType::UnsignedInteger(4),
                                     )),
                                 )),
                                 Filter::Child((
                                     Regex::from("subelement3"),
                                     Box::new(Filter::Expression(
                                         Comparator::LesserThan,
-                                        SimpleValueType::from("1.0".to_string()),
+                                        SimpleValueType::Float(1.0),
                                     )),
                                 )),
                                 Filter::Child((
                                     Regex::from("subelement4"),
                                     Box::new(Filter::Expression(
                                         Comparator::EqualsNot,
-                                        SimpleValueType::from("-2".to_string()),
+                                        SimpleValueType::SignedInteger(-2),
                                     )),
                                 )),
                                 Filter::Child((
@@ -242,31 +247,31 @@ mod tests {
                             copy: None,
                         },
                         modification: None,
-                        subqueries: vec![],
+                        subqueries: IndexMap::new(),
                     },
-                )],
-            };
+                )},
+            });
             complex_test_helper(
                 indoc! {r#"
-                    elementa:
-                        $if:
-                            subelement1: =true
-                            subelement2: '>4'
-                            subelement3: <1.0
-                            subelement4: '!=-2'
-                            subelement5: '^some(pattern)?$'
-                  "#},
+                        elementa:
+                            $if:
+                                subelement1: =true
+                                subelement2: '>4'
+                                subelement3: <1.0
+                                subelement4: '!=-2'
+                                subelement5: '^some(pattern)?$'
+                      "#},
                 expected_result,
             );
         }
         #[test]
         fn test_cascaded_filter() {
-            let expected_result = Query::Complex {
+            let expected_result = Query::Complex(ComplexQuery {
                 modifier: Modifier::new(),
                 modification: None,
-                subqueries: vec![(
-                    Regex::from("elementa"),
-                    Query::Complex {
+                subqueries: indexmap! {
+                    Regex::from("elementa") =>
+                    Query::Complex(ComplexQuery {
                         modifier: Modifier {
                             filter: Some(Filter::And(vec![
                                 Filter::Child((
@@ -276,14 +281,14 @@ mod tests {
                                             Regex::from("subelement"),
                                             Box::new(Filter::Expression(
                                                 Comparator::Equals,
-                                                SimpleValueType::from("true".to_string()),
+                                                SimpleValueType::Boolean(true),
                                             )),
                                         )),
                                         Filter::Child((
                                             Regex::from("subelement"),
                                             Box::new(Filter::Expression(
                                                 Comparator::GreaterThan,
-                                                SimpleValueType::from("4".to_string()),
+                                                SimpleValueType::UnsignedInteger(4),
                                             )),
                                         )),
                                     ])),
@@ -295,14 +300,14 @@ mod tests {
                                             Regex::from("subelement"),
                                             Box::new(Filter::Expression(
                                                 Comparator::Equals,
-                                                SimpleValueType::from("true".to_string()),
+                                                SimpleValueType::Boolean(true),
                                             )),
                                         )),
                                         Filter::Child((
                                             Regex::from("subelement"),
                                             Box::new(Filter::Expression(
                                                 Comparator::GreaterThan,
-                                                SimpleValueType::from("4".to_string()),
+                                                SimpleValueType::UnsignedInteger(4),
                                             )),
                                         )),
                                     ])),
@@ -312,32 +317,32 @@ mod tests {
                             copy: None,
                         },
                         modification: None,
-                        subqueries: vec![],
-                    },
-                )],
-            };
+                        subqueries: IndexMap::new(),
+                    })
+                },
+            });
             complex_test_helper(
                 indoc! {r#"
-                    elementa:
-                        $if:
-                            filter_element_a:
-                                - subelement: =true
-                                - subelement: '>4'
-                            filter_element_b:
-                                - subelement: =true
-                                - subelement: '>4'
-                  "#},
+                        elementa:
+                            $if:
+                                filter_element_a:
+                                    - subelement: =true
+                                    - subelement: '>4'
+                                filter_element_b:
+                                    - subelement: =true
+                                    - subelement: '>4'
+                      "#},
                 expected_result.clone(),
             );
         }
         #[test]
         fn test_or_filter() {
-            let expected_result = Query::Complex {
+            let expected_result = Query::Complex(ComplexQuery {
                 modifier: Modifier::new(),
                 modification: None,
-                subqueries: vec![(
-                    Regex::from("elementa"),
-                    Query::Complex {
+                subqueries: indexmap! {
+                    Regex::from("elementa") =>
+                    Query::Complex( ComplexQuery{
                         modifier: Modifier {
                             filter: Some(Filter::And(vec![
                                 Filter::Or(vec![
@@ -345,21 +350,21 @@ mod tests {
                                         Regex::from("element0"),
                                         Box::new(Filter::Expression(
                                             Comparator::Equals,
-                                            SimpleValueType::from("5".to_string()),
+                                            SimpleValueType::UnsignedInteger(5),
                                         )),
                                     )),
                                     Filter::Child((
                                         Regex::from("element1"),
                                         Box::new(Filter::Expression(
                                             Comparator::Equals,
-                                            SimpleValueType::from("true".to_string()),
+                                            SimpleValueType::Boolean(true),
                                         )),
                                     )),
                                     Filter::Child((
                                         Regex::from("element2"),
                                         Box::new(Filter::Expression(
                                             Comparator::GreaterThan,
-                                            SimpleValueType::from("2.0".to_string()),
+                                            SimpleValueType::Float(2.0),
                                         )),
                                     )),
                                 ]),
@@ -368,21 +373,21 @@ mod tests {
                                         Regex::from("element"),
                                         Box::new(Filter::Expression(
                                             Comparator::Equals,
-                                            SimpleValueType::from("5".to_string()),
+                                            SimpleValueType::UnsignedInteger(5),
                                         )),
                                     )),
                                     Filter::Child((
                                         Regex::from("element"),
                                         Box::new(Filter::Expression(
                                             Comparator::Equals,
-                                            SimpleValueType::from("2".to_string()),
+                                            SimpleValueType::UnsignedInteger(2),
                                         )),
                                     )),
                                     Filter::Child((
                                         Regex::from("element"),
                                         Box::new(Filter::Expression(
                                             Comparator::LesserThan,
-                                            SimpleValueType::from("1".to_string()),
+                                            SimpleValueType::UnsignedInteger(1),
                                         )),
                                     )),
                                 ]),
@@ -392,42 +397,43 @@ mod tests {
                             copy: None,
                         },
                         modification: None,
-                        subqueries: vec![],
-                    },
-                )],
-            };
+                        subqueries: IndexMap::new(),
+                    }),
+                },
+            });
             complex_test_helper(
                 indoc! {r#"
-                    elementa:
-                        $if:
-                            - $or:
-                                $or:
-                                    element0: 5
-                                element1: =true
-                                element2: '>2.0'
-                            - $or:
-                                - $and:
-                                    element: 5
-                                - element: =2
-                                - element: '<1'
-                  "#},
+                        elementa:
+                            $if:
+                                - $or:
+                                    $or:
+                                        element0: 5
+                                    element1: =true
+                                    element2: '>2.0'
+                                - $or:
+                                    - $and:
+                                        element: 5
+                                    - element: =2
+                                    - element: '<1'
+                      "#},
                 expected_result.clone(),
             );
         }
     }
     mod modify_tests {
-        use value::{SimpleValueType, Value};
+        use value::ModificationValue;
 
         use super::*;
+        use indexmap::IndexMap;
 
         #[test]
         fn test_modifiers_simple() {
-            let expected_result = Query::Complex {
+            let expected_result = Query::Complex(ComplexQuery {
                 modifier: Modifier::new(),
                 modification: None,
-                subqueries: vec![(
-                    Regex::from("elementa"),
-                    Query::Complex {
+                subqueries: indexmap! {
+                Regex::from("elementa") =>
+                    Query::Complex(ComplexQuery {
                         modifier: Modifier {
                             filter: Some(Filter::And(vec![
                                 Filter::Or(vec![
@@ -435,21 +441,21 @@ mod tests {
                                         Regex::from("subelement1"),
                                         Box::new(Filter::Expression(
                                             Comparator::Equals,
-                                            SimpleValueType::from("pattern1".to_string()),
+                                            SimpleValueType::Pattern(ReferenceExpression::from("pattern1".to_string())),
                                         )),
                                     )),
                                     Filter::Child((
                                         Regex::from("subelement2"),
                                         Box::new(Filter::Expression(
                                             Comparator::Equals,
-                                            SimpleValueType::from("pattern2".to_string()),
+                                            SimpleValueType::Pattern(ReferenceExpression::from("pattern2".to_string())),
                                         )),
                                     )),
                                     Filter::Child((
                                         Regex::from("subelement3"),
                                         Box::new(Filter::Expression(
                                             Comparator::Equals,
-                                            SimpleValueType::from("pattern3".to_string()),
+                                            SimpleValueType::Pattern(ReferenceExpression::from("pattern3".to_string())),
                                         )),
                                     )),
                                 ]),
@@ -457,134 +463,168 @@ mod tests {
                                     Regex::from("subelement4"),
                                     Box::new(Filter::Expression(
                                         Comparator::Equals,
-                                        SimpleValueType::from("pattern4".to_string()),
+                                        SimpleValueType::Pattern(ReferenceExpression::from("pattern4".to_string())),
                                     )),
                                 )),
                                 Filter::Child((
                                     Regex::from("subelement5"),
                                     Box::new(Filter::Expression(
                                         Comparator::Equals,
-                                        SimpleValueType::from("pattern5".to_string()),
+                                        SimpleValueType::Pattern(ReferenceExpression::from("pattern5".to_string())),
                                     )),
                                 )),
                                 Filter::Child((
                                     Regex::from("subelement6"),
                                     Box::new(Filter::Expression(
                                         Comparator::Equals,
-                                        SimpleValueType::from("pattern6".to_string()),
+                                        SimpleValueType::Pattern(ReferenceExpression::from("pattern6".to_string())),
                                     )),
                                 )),
                                 Filter::Child((
                                     Regex::from("subelement7"),
                                     Box::new(Filter::Expression(
                                         Comparator::Equals,
-                                        SimpleValueType::from("pattern7".to_string()),
+                                        SimpleValueType::Pattern(ReferenceExpression::from("pattern7".to_string())),
                                     )),
                                 )),
                             ])),
                             move_to: Some(ReferenceExpression::from("some other place")),
                             copy: Some(ReferenceExpression::from("some place")),
                         },
-                        modification: Some(Value::SimpleValue(SimpleValueType::Pattern(
-                            ReferenceExpression::from("hello world"),
-                        ))),
-                        subqueries: vec![],
-                    },
-                )],
-            };
+                        modification: Some(ModificationValue::SimpleValue(
+                            SimpleValueType::Pattern(ReferenceExpression::from("hello world")),
+                        )),
+                        subqueries: IndexMap::new(),
+                    }),
+                },
+            });
             complex_test_helper(
                 indoc! {r#"
-                    elementa:
-                      $if:
-                          $or:
-                            - subelement1: "pattern1"
-                            - subelement2: "pattern2"
-                              subelement3: "pattern3"
-                          $and:
-                            - subelement4: "pattern4"
-                            - subelement5: "pattern5"
-                              subelement6: "pattern6"
-                          subelement7: "pattern7"
-                      $move: "some other place"
-                      $copy: "some place"
-                      $modify: "hello world"
-                  "#},
+                        elementa:
+                          $if:
+                              $or:
+                                - subelement1: "pattern1"
+                                - subelement2: "pattern2"
+                                  subelement3: "pattern3"
+                              $and:
+                                - subelement4: "pattern4"
+                                - subelement5: "pattern5"
+                                  subelement6: "pattern6"
+                              subelement7: "pattern7"
+                          $move: "some other place"
+                          $copy: "some place"
+                          $modify: "hello world"
+                      "#},
                 expected_result,
             );
         }
         #[test]
         fn test_modify_complex_map() {
-            let expected_result = Query::from(vec![(
-                Regex::from("elementa"),
-                Query::Complex {
+            let expected_result = Query::from(indexmap! {
+                Regex::from("elementa") =>
+                Query::Complex(ComplexQuery {
                     modifier: Modifier::new(),
-                    modification: Some(Value::ComplexValues {
+                    modification: Some(ModificationValue::ComplexValue( ComplexValue{
                         modifier: Modifier::new(),
-                        subvalues: vec![
-                            (
-                                ModificationIdentifier::from("elementb"),
-                                Value::SimpleValue(SimpleValueType::Pattern(
-                                    ReferenceExpression::from("hello"),
-                                )),
-                            ),
-                            (
-                                ModificationIdentifier::from("elementc"),
-                                Value::SimpleValue(SimpleValueType::Pattern(
-                                    ReferenceExpression::from("world"),
-                                )),
-                            ),
-                        ],
-                    }),
-                    subqueries: vec![],
-                },
-            )]);
+                        subvalues: indexmap!{
+                            ModificationIdentifier::from("elementb") =>
+                            ModificationValue::SimpleValue(SimpleValueType::Pattern(
+                                ReferenceExpression::from("hello"),
+                            )),
+                            ModificationIdentifier::from("elementc") =>
+                            ModificationValue::SimpleValue(SimpleValueType::Pattern(
+                                ReferenceExpression::from("world"),
+                            )),
+                        },
+                        attributes: None,
+                    })),
+                    subqueries: IndexMap::new(),
+                }),
+            });
             complex_test_helper(
                 indoc! {r#"
-                    elementa:
-                      $modify:
-                        elementb: "hello"
-                        elementc: "world"
-                  "#},
+                        elementa:
+                          $modify:
+                            elementb: "hello"
+                            elementc: "world"
+                      "#},
                 expected_result,
             );
         }
         #[test]
         fn test_modify_complex_list() {
-            let expected_result = Query::from(vec![(
-                Regex::from("elementa"),
-                Query::Complex {
+            let expected_result = Query::from(indexmap! {
+                Regex::from("elementa") =>
+                Query::Complex (ComplexQuery{
                     modifier: Modifier::new(),
-                    modification: Some(Value::ComplexValues {
-                        modifier: Modifier {
-                            filter: None,
-                            move_to: None,
-                            copy: None,
-                        },
-                        subvalues: vec![
-                            (
-                                ModificationIdentifier::from("elementb"),
-                                Value::SimpleValue(SimpleValueType::Pattern(
+                    modification: Some(ModificationValue::ComplexValueVec(vec![
+                        ComplexValue{
+                            modifier: Modifier::new(),
+                            subvalues: indexmap!{
+                                ModificationIdentifier::from("elementb") =>
+                                ModificationValue::SimpleValue(SimpleValueType::Pattern(
                                     ReferenceExpression::from("hello"),
                                 )),
-                            ),
-                            (
-                                ModificationIdentifier::from("elementb"),
-                                Value::SimpleValue(SimpleValueType::Pattern(
+                            },
+                            attributes: None
+                        },
+                        ComplexValue{
+                            modifier: Modifier::new(),
+                            subvalues: indexmap!{
+                                ModificationIdentifier::from("elementb") =>
+                                ModificationValue::SimpleValue(SimpleValueType::Pattern(
                                     ReferenceExpression::from("world"),
                                 )),
-                            ),
-                        ],
-                    }),
-                    subqueries: vec![],
-                },
-            )]);
+                            },
+                            attributes: None
+                        },
+                    ])),
+                    subqueries: IndexMap::new(),
+                })
+            });
             complex_test_helper(
                 indoc! {r#"
-                    elementa:
-                      $modify:
-                        - elementb: "hello"
-                        - elementb: "world"
-                  "#},
+                        elementa:
+                          $modify:
+                            - elementb: "hello"
+                            - elementb: "world"
+                      "#},
+                expected_result,
+            );
+        }
+    }
+    mod attribute_tests {
+        use value::ModificationValue;
+
+        use super::*;
+        use indexmap::IndexMap;
+
+        #[test]
+        fn test_simple_attributes_modification() {
+            let expected_result = Query::from(indexmap! {
+                Regex::from("elementa") =>
+                Query::Complex( ComplexQuery {
+                    modifier: Modifier::new(),
+                    modification: Some(ModificationValue::ComplexValue(ComplexValue {
+                        modifier: Modifier::new(),
+                        subvalues: IndexMap::new(),
+                        attributes: Some(indexmap!{
+                            "attribute1".to_string() =>
+                            SimpleValueType::Pattern(ReferenceExpression::from("hello")),
+                            "attribute2".to_string() => SimpleValueType::Remove
+                        }),
+                    })),
+                    subqueries: IndexMap::new(),
+                }),
+            });
+            complex_test_helper(
+                indoc! {r#"
+                        elementa:
+                          $modify:
+                            $attributes:
+                              attribute1: "hello"
+                              attribute2: ~
+                      "#},
                 expected_result,
             );
         }
