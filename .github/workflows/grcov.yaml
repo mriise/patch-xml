@@ -1,4 +1,4 @@
-name: build
+name: grcov
 
 on: [push, pull_request]
 
