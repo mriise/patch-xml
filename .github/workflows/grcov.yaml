@@ -16,6 +16,7 @@ jobs:
           CODECOV_TOKEN: ${{ secrets.CODECOV_TOKEN }}
         run: |
           cargo install cargo-tarpaulin
-          sed 's/^patch-xml = {.*}$/patch-xml = { git = \"https:\/\/github.com\/VilNeo\/patch-xml", branch = "main" }/' Cargo.toml > Cargo.toml
+          sed 's/^patch-xml = {.*}$/patch-xml = { git = "https:\/\/github.com\/VilNeo\/patch-xml", branch = "main" }/' Cargo.toml > grcov-Cargo.toml
+          cp grcov-Cargo.toml Cargo.toml
           cargo tarpaulin --out Xml
           bash <(curl -s https://codecov.io/bash) -X gcov -t $CODECOV_TOKEN
