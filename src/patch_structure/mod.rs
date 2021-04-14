@@ -242,6 +242,18 @@ mod tests {
                                         "some(pattern)?".to_string(),
                                     ))),
                                 )),
+                                Filter::Child((
+                                    Regex::from("subelement6"),
+                                    Box::new(Filter::Expression(Comparator::Equals,SimpleValueType::SignedInteger(-7))),
+                                )),
+                                Filter::Child((
+                                    Regex::from("subelement7"),
+                                    Box::new(Filter::Expression(Comparator::Equals,SimpleValueType::Boolean(false))),
+                                )),
+                                Filter::Child((
+                                    Regex::from("subelement8"),
+                                    Box::new(Filter::NotSet),
+                                )),
                             ])),
                             move_to: None,
                             copy: None,
@@ -260,6 +272,52 @@ mod tests {
                                 subelement3: <1.0
                                 subelement4: '!=-2'
                                 subelement5: '^some(pattern)?$'
+                                subelement6: -7
+                                subelement7: false
+                                subelement8: ~
+                      "#},
+                expected_result,
+            );
+        }
+        #[test]
+        fn test_simple_or_filter() {
+            let expected_result = Query::Complex(ComplexQuery {
+                modifier: Modifier::new(),
+                modification: None,
+                subqueries: indexmap! {
+                    Regex::from("elementa") =>
+                    Query::Complex(ComplexQuery {
+                        modifier: Modifier {
+                            filter: Some(Filter::Or(vec![
+                                Filter::Child((
+                                    Regex::from("subelement6"),
+                                    Box::new(Filter::Expression(Comparator::Equals,SimpleValueType::SignedInteger(-7))),
+                                )),
+                                Filter::Child((
+                                    Regex::from("subelement7"),
+                                    Box::new(Filter::Expression(Comparator::Equals,SimpleValueType::Boolean(false))),
+                                )),
+                                Filter::Child((
+                                    Regex::from("subelement8"),
+                                    Box::new(Filter::NotSet),
+                                )),
+                            ])),
+                            move_to: None,
+                            copy: None,
+                        },
+                        modification: None,
+                        subqueries: IndexMap::new(),
+                    },
+                )},
+            });
+            complex_test_helper(
+                indoc! {r#"
+                        elementa:
+                            $if:
+                                $or:
+                                    subelement6: -7
+                                    subelement7: false
+                                    subelement8: ~
                       "#},
                 expected_result,
             );
