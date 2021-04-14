@@ -86,7 +86,7 @@ fn test_patched_register() {
                             writeConstraint: UseEnumeratedValues
                             readAction: ModifyExternal
                             fields:
-                                field:
+                                - field:
                                     derivedFrom: SomeOtherField
                                     dim: 10
                                     dimIncrement: 11
@@ -134,7 +134,7 @@ fn test_patched_register() {
                                                     description: Some Write EnumeratedValue Description
                                                     value:
                                                         value: 17
-                                +field:
+                                - +field:
                                     name: Field2
                                     bitOffset: 221
                                     bitWidth: 222
@@ -148,7 +148,7 @@ fn test_patched_register() {
                                                 description: Enum Value Description 2
                                                 value:
                                                     value: 77
-                                +field:
+                                - +field:
                                     name: Field3
                                     bitOffset: 331
                                     bitWidth: 332
@@ -162,7 +162,7 @@ fn test_patched_register() {
                                                 description: Enum Value Description 3
                                                 value:
                                                     value: 77
-                                +field:
+                                - +field:
                                     name: Field4
                                     bitOffset: 441
                                     bitWidth: 442

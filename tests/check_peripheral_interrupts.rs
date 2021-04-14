@@ -10,11 +10,11 @@ fn test_interrupts() {
         peripherals:
             peripheral:
                 $modify:
-                    +interrupt:
+                    - +interrupt:
                         name: InterruptName1
                         description: "Interrupt description one"
                         value: 44
-                    +interrupt:
+                    - +interrupt:
                         name: InterruptName2
                         description: "Interrupt description two"
                         value: 55
