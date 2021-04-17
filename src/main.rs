@@ -7,9 +7,8 @@ use std::fs::File;
 use std::io::{Read, Write};
 
 fn main() {
-    //ToDo 1: Implement "Import" functionality
-    //ToDo 2: Document code
-    //ToDo 3: Increase test coverage to more than 95%
+    //ToDo: Implement "Import" functionality
+    //ToDo: Increase test coverage to more than 95%
     let args: Vec<String> = env::args().collect();
     if args.len() != 4 {
         eprintln!(
