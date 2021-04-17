@@ -48,7 +48,7 @@ fn test_patched_sparse_device() {
               license
               text
             cpu:
-                name: "Other CPU name"
+                name: "CM0+"
                 revision: "r5"
                 endian: big
                 mpuPresent: false
@@ -65,28 +65,27 @@ fn test_patched_sparse_device() {
                 deviceNumInterrupts: 32
                 sauNumRegions: 256
                 sauRegionsConfig:
-                    enabled: true
-                    protectionWhenDisabled: priviledged
-                    regions:
-                        - +region:
-                            enabled: true
-                            name: "Region 1"
-                            base: 27
-                            limit: 72
-                            access: "RW"
-                        - +region:
-                            enabled: false
-                            name: "Region 2"
-                            base: 29
-                            limit: 42
-                            access: "R"
+                    - enabled: true
+                    - protectionWhenDisabled: p
+                    - +region:
+                        enabled: true
+                        name: "Region 1"
+                        base: 27
+                        limit: 72
+                        access: n
+                    - +region:
+                        enabled: false
+                        name: "Region 2"
+                        base: 29
+                        limit: 42
+                        access: c
             headerSystemFilename: "Some filename"
             headerDefinitionsPrefix: "Some definition prefix"
             addressUnitBits: '#1101'
             width: '0xFF'
             size: 32
             access: read-only
-            protection: nonSecure
+            protection: n
             resetValue: 0
             resetMask: 255
             peripherals:
@@ -107,7 +106,7 @@ fn test_patched_sparse_device() {
             description: "Some other description".to_string(),
             license_text: Some("Some\nlicense\ntext".to_string()),
             cpu: Cpu {
-                name: "Other CPU name".to_string(),
+                name: CpuNameType::CM0PLUS,
                 revision: "r5".to_string(),
                 endian: EndianType::Big,
                 mpu_present: false,
@@ -126,24 +125,22 @@ fn test_patched_sparse_device() {
                 sau_regions_config: Some(SauRegionsConfigType {
                     enabled: Some(true),
                     protection_when_disabled: Some(Protection::Priviledged),
-                    regions: Some(SauRegionsType {
-                        region: vec![
-                            SauRegionType {
-                                enabled: Some(true),
-                                name: Some("Region 1".to_string()),
-                                base: SvdConstant { value: 27 },
-                                limit: SvdConstant { value: 72 },
-                                access: "RW".to_string()
-                            },
-                            SauRegionType {
-                                enabled: Some(false),
-                                name: Some("Region 2".to_string()),
-                                base: SvdConstant { value: 29 },
-                                limit: SvdConstant { value: 42 },
-                                access: "R".to_string()
-                            }
-                        ]
-                    })
+                    region: Some(vec![
+                        SauRegionType {
+                            enabled: Some(true),
+                            name: Some("Region 1".to_string()),
+                            base: SvdConstant { value: 27 },
+                            limit: SvdConstant { value: 72 },
+                            access: SauRegionAccessType::NonSecure
+                        },
+                        SauRegionType {
+                            enabled: Some(false),
+                            name: Some("Region 2".to_string()),
+                            base: SvdConstant { value: 29 },
+                            limit: SvdConstant { value: 42 },
+                            access: SauRegionAccessType::SecureCallable
+                        }
+                    ])
                 })
             },
             header_system_filename: Some("Some filename".to_string()),

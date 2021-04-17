@@ -9,7 +9,7 @@ pub const SPARSE_DEVICE: &str = r#"
         <version>1.0.0</version>
         <description>Some description</description>
         <cpu>
-            <name>CpuName</name>
+            <name>CM0</name>
             <revision>r4</revision>
             <endian>little</endian>
             <mpuPresent>true</mpuPresent>
@@ -35,7 +35,7 @@ pub const SPARSE_PERIPHERAL: &str = r#"
         <version>1.0.0</version>
         <description>Some description</description>
         <cpu>
-            <name>CpuName</name>
+            <name>CM0</name>
             <revision>r4</revision>
             <endian>little</endian>
             <mpuPresent>true</mpuPresent>
@@ -65,7 +65,7 @@ pub fn get_sparse_device() -> Device {
         description: "Some description".to_string(),
         license_text: None,
         cpu: Cpu {
-            name: "CpuName".to_string(),
+            name: CpuNameType::CM0,
             revision: "r4".to_string(),
             endian: EndianType::Little,
             mpu_present: true,

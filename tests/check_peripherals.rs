@@ -61,14 +61,14 @@ fn test_general_patched_peripheral() {
                     baseAddress: 4321
                     size: 66
                     access: read-writeOnce
-                    protection: nonSecure
+                    protection: n
                     resetValue: 77
                     resetMask: 88
                     addressBlock:
                         offset: 99
                         size: 111
-                        usage: AddressBlockUsage
-                        protection: secure
+                        usage: registers
+                        protection: s
     "#;
     let result = get_patched_svd(utils::SPARSE_DEVICE.to_string(), patch.to_string());
     let mut device = utils::get_sparse_device();
@@ -112,7 +112,7 @@ fn test_general_patched_peripheral() {
             address_block: Some(AddressBlock {
                 offset: SvdConstant { value: 99 },
                 size: SvdConstant { value: 111 },
-                usage: "AddressBlockUsage".to_string(),
+                usage: AddressBlockUsage::Registers,
                 protection: Some(Protection::Secure),
             }),
             interrupt: None,

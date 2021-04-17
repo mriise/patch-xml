@@ -78,7 +78,7 @@ fn test_patched_register() {
                             addressOffset: 66
                             size: 77
                             access: writeOnce
-                            protection: priviledged
+                            protection: p
                             resetValue: 88
                             resetMask: 99
                             dataType: int64_t *
@@ -87,53 +87,51 @@ fn test_patched_register() {
                             readAction: ModifyExternal
                             fields:
                                 - field:
-                                    derivedFrom: SomeOtherField
-                                    dim: 10
-                                    dimIncrement: 11
-                                    dimIndex: 12
-                                    dimName: SomeFieldDimName
-                                    dimArrayIndex:
+                                    - derivedFrom: SomeOtherField
+                                    - dim: 10
+                                    - dimIncrement: 11
+                                    - dimIndex: 12
+                                    - dimName: SomeFieldDimName
+                                    - dimArrayIndex:
                                         headerEnumName: SomeOtherHeaderEnumName
                                         enumeratedValue:
                                             name: SomeOtherEnumValueName
                                             description: Some Other Enum Value Description
                                             value: default
-                                    name: FieldName
-                                    description: Field Description
-                                    bitOffset: 131
-                                    bitWidth: 132
-                                    lsb: 133
-                                    msb: 134
-                                    bitRange: 135
-                                    access: writeOnce
-                                    modifiedWriteValues: set
-                                    writeConstraint:
+                                    - name: FieldName
+                                    - description: Field Description
+                                    - bitOffset: 131
+                                    - bitWidth: 132
+                                    - lsb: 133
+                                    - msb: 134
+                                    - bitRange: 135
+                                    - access: writeOnce
+                                    - modifiedWriteValues: set
+                                    - writeConstraint:
                                         Range:
                                             minimum: 14
                                             maximum: 15
-                                    readAction: ModifyExternal
-                                    enumeratedValues:
-                                        ReadWrite:
-                                            read:
-                                                derivedFrom: SomeOtherReadEnumName
-                                                name: SomeReadEnumName
-                                                headerEnumName: SomeHeaderReadEnumName
-                                                usage: Read
-                                                enumeratedValue:
-                                                    name: SomeReadEnumeratedValueName
-                                                    description: Some Read EnumeratedValue Description
-                                                    value:
-                                                        value: 16
-                                            write:
-                                                derivedFrom: SomeOtherWriteEnumName
-                                                name: SomeWriteEnumName
-                                                headerEnumName: SomeHeaderWriteEnumName
-                                                usage: Write
-                                                enumeratedValue:
-                                                    name: SomeWriteEnumeratedValueName
-                                                    description: Some Write EnumeratedValue Description
-                                                    value:
-                                                        value: 17
+                                    - readAction: ModifyExternal
+                                    - +enumeratedValues:
+                                        derivedFrom: SomeOtherReadEnumName
+                                        name: SomeReadEnumName
+                                        headerEnumName: SomeHeaderReadEnumName
+                                        usage: Read
+                                        enumeratedValue:
+                                            name: SomeReadEnumeratedValueName
+                                            description: Some Read EnumeratedValue Description
+                                            value:
+                                                value: 16
+                                    - +enumeratedValues:
+                                        derivedFrom: SomeOtherWriteEnumName
+                                        name: SomeWriteEnumName
+                                        headerEnumName: SomeHeaderWriteEnumName
+                                        usage: Write
+                                        enumeratedValue:
+                                            name: SomeWriteEnumeratedValueName
+                                            description: Some Write EnumeratedValue Description
+                                            value:
+                                                value: 17
                                 - +field:
                                     name: Field2
                                     bitOffset: 221
@@ -142,12 +140,12 @@ fn test_patched_register() {
                                     msb: 224
                                     bitRange: 225
                                     enumeratedValues:
-                                        ReadAndWrite:
-                                            enumeratedValue:
-                                                name: EnumValueName2
-                                                description: Enum Value Description 2
-                                                value:
-                                                    value: 77
+                                        usage: Read
+                                        enumeratedValue:
+                                            name: EnumValueName2
+                                            description: Enum Value Description 2
+                                            value:
+                                                value: 77
                                 - +field:
                                     name: Field3
                                     bitOffset: 331
@@ -156,12 +154,12 @@ fn test_patched_register() {
                                     msb: 334
                                     bitRange: 335
                                     enumeratedValues:
-                                        Read:
-                                            enumeratedValue:
-                                                name: EnumValueName3
-                                                description: Enum Value Description 3
-                                                value:
-                                                    value: 77
+                                        usage: Read
+                                        enumeratedValue:
+                                            name: EnumValueName3
+                                            description: Enum Value Description 3
+                                            value:
+                                                value: 77
                                 - +field:
                                     name: Field4
                                     bitOffset: 441
@@ -170,12 +168,12 @@ fn test_patched_register() {
                                     msb: 444
                                     bitRange: 445
                                     enumeratedValues:
-                                        Write:
-                                            enumeratedValue:
-                                                name: EnumValueName4
-                                                description: Enum Value Description 4
-                                                value:
-                                                    value: 77
+                                        usage: Write
+                                        enumeratedValue:
+                                            name: EnumValueName4
+                                            description: Enum Value Description 4
+                                            value:
+                                                value: 77
     "#;
     let result = get_patched_svd(utils::SPARSE_PERIPHERAL.to_string(), patch.to_string());
     let device =
@@ -240,8 +238,8 @@ fn test_patched_register() {
                                 maximum: SvdConstant { value: 15 },
                             }),
                             read_action: Some(ReadAction::ModifyExternal),
-                            enumerated_values: Some(EnumAccessType::ReadWrite {
-                                read: EnumeratedValues {
+                            enumerated_values: Some(vec![
+                                EnumeratedValues {
                                     derived_from: Some("SomeOtherReadEnumName".to_string()),
                                     name: Some("SomeReadEnumName".to_string()),
                                     header_enum_name: Some("SomeHeaderReadEnumName".to_string()),
@@ -253,7 +251,7 @@ fn test_patched_register() {
                                         value: EnumValue::Value(SvdConstant { value: 16 }),
                                     }],
                                 },
-                                write: EnumeratedValues {
+                                EnumeratedValues {
                                     derived_from: Some("SomeOtherWriteEnumName".to_string()),
                                     name: Some("SomeWriteEnumName".to_string()),
                                     header_enum_name: Some("SomeHeaderWriteEnumName".to_string()),
@@ -265,7 +263,7 @@ fn test_patched_register() {
                                         value: EnumValue::Value(SvdConstant { value: 17 }),
                                     }],
                                 },
-                            }),
+                            ]),
                         },
                         Field {
                             derived_from: None,
@@ -285,19 +283,17 @@ fn test_patched_register() {
                             modified_write_values: None,
                             write_constraint: None,
                             read_action: None,
-                            enumerated_values: Some(EnumAccessType::ReadAndWrite(
-                                EnumeratedValues {
-                                    derived_from: None,
-                                    name: None,
-                                    header_enum_name: None,
-                                    usage: None,
-                                    enumerated_value: vec![EnumeratedValue {
-                                        name: "EnumValueName2".to_string(),
-                                        description: "Enum Value Description 2".to_string(),
-                                        value: EnumValue::Value(SvdConstant { value: 77 }),
-                                    }],
-                                },
-                            )),
+                            enumerated_values: Some(vec![EnumeratedValues {
+                                derived_from: None,
+                                name: None,
+                                header_enum_name: None,
+                                usage: Some(EnumeratedValuesUsage::Read),
+                                enumerated_value: vec![EnumeratedValue {
+                                    name: "EnumValueName2".to_string(),
+                                    description: "Enum Value Description 2".to_string(),
+                                    value: EnumValue::Value(SvdConstant { value: 77 }),
+                                }],
+                            }]),
                         },
                         Field {
                             derived_from: None,
@@ -317,17 +313,17 @@ fn test_patched_register() {
                             modified_write_values: None,
                             write_constraint: None,
                             read_action: None,
-                            enumerated_values: Some(EnumAccessType::Read(EnumeratedValues {
+                            enumerated_values: Some(vec![EnumeratedValues {
                                 derived_from: None,
                                 name: None,
                                 header_enum_name: None,
-                                usage: None,
+                                usage: Some(EnumeratedValuesUsage::Read),
                                 enumerated_value: vec![EnumeratedValue {
                                     name: "EnumValueName3".to_string(),
                                     description: "Enum Value Description 3".to_string(),
                                     value: EnumValue::Value(SvdConstant { value: 77 }),
                                 }],
-                            })),
+                            }]),
                         },
                         Field {
                             derived_from: None,
@@ -347,17 +343,17 @@ fn test_patched_register() {
                             modified_write_values: None,
                             write_constraint: None,
                             read_action: None,
-                            enumerated_values: Some(EnumAccessType::Write(EnumeratedValues {
+                            enumerated_values: Some(vec![EnumeratedValues {
                                 derived_from: None,
                                 name: None,
                                 header_enum_name: None,
-                                usage: None,
+                                usage: Some(EnumeratedValuesUsage::Write),
                                 enumerated_value: vec![EnumeratedValue {
                                     name: "EnumValueName4".to_string(),
                                     description: "Enum Value Description 4".to_string(),
                                     value: EnumValue::Value(SvdConstant { value: 77 }),
                                 }],
-                            })),
+                            }]),
                         },
                     ],
                 }),
@@ -393,7 +389,7 @@ fn test_register_cluster() {
                             addressOffset: 44
                             size: 55
                             access: read-only
-                            protection: secure
+                            protection: s
                             resetValue: 66
                             resetMask: 77
                             register:
