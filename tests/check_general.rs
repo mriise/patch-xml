@@ -30,16 +30,7 @@ fn test_wrong_svd_constant() {
     }
     let result: Result<Tmp, serde_xml_rs::Error> =
         serde_xml_rs::from_str(&"<root><value>Hello World</value></root>".to_string());
-    match result {
-        Ok(result) => panic!(
-            "\"No Number\" should not be convertible to an SvdConstant. Result is: {:?}",
-            result
-        ),
-        Err(err) => match &err {
-            serde_xml_rs::Error::Custom { .. } => {}
-            _ => panic!("Expected CustomError, got {:?} instead.", err),
-        },
-    }
+    assert!(result.is_err());
 }
 
 #[test]

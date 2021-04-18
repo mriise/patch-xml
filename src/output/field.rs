@@ -76,6 +76,7 @@ pub struct Field {
 /// The mask of a field with its individual configurations
 /// The specific values like bit_offset and bit_width require a concrete setup.
 /// This enum representates all allowed occurance variants of these specific values.
+#[derive(Debug, Eq, PartialEq)]
 pub enum FieldMask {
     /// A combination of mask offset and mask width
     OffsetWidth {
@@ -125,19 +126,10 @@ impl Field {
                     Some(caps) => caps
                 };
 
-                let msb = caps.name("msb");
-                let lsb = caps.name("lsb");
-
-                let (msb, lsb) = match (msb, lsb) {
-                    (Some(msb), Some(lsb)) => {
-                        (SvdConstant::from_string(msb.as_str().to_string()),
-                         SvdConstant::from_string(lsb.as_str().to_string()))
-                    }
-                    _ => return Err(format!(
-                        "Invalid format for bit range pattern: Could not find msb and lsb in pattern: {}",
-                        pattern
-                    ).to_string())
-                };
+                // We call unwrap here since the regex and the capture names are fixed.
+                // So caps.name() should always return successfully. If not, this case has to be tested.
+                let msb = SvdConstant::from_string(caps.name("msb").unwrap().as_str().to_string());
+                let lsb = SvdConstant::from_string(caps.name("lsb").unwrap().as_str().to_string());
 
                 match (msb, lsb) {
                     (Ok(msb),Ok(lsb)) => {
@@ -198,7 +190,7 @@ pub struct EnumeratedValues {
 
 #[cfg(test)]
 mod tests {
-    use crate::output::{Field, FieldMask};
+    use crate::output::{Field, FieldMask, SvdConstant};
     fn get_field_with_bitrange(bit_range: &str) -> Field {
         Field {
             derived_from: None,
@@ -254,9 +246,66 @@ mod tests {
             read_action: None,
             enumerated_values: None,
         };
-        match field.get_mask() {
-            FieldMask::None => {}
-            _ => panic!("Expected None-FieldMask"),
-        }
+        assert_eq!(field.get_mask(), FieldMask::None)
+    }
+    #[test]
+    fn test_mask_offset_width() {
+        let field = Field {
+            derived_from: None,
+            dim: None,
+            dim_increment: None,
+            dim_index: None,
+            dim_name: None,
+            dim_array_index: None,
+            name: "".to_string(),
+            description: None,
+            bit_offset: Some(SvdConstant { value: 77 }),
+            bit_width: Some(SvdConstant { value: 88 }),
+            lsb: None,
+            msb: None,
+            bit_range: None,
+            access: None,
+            modified_write_values: None,
+            write_constraint: None,
+            read_action: None,
+            enumerated_values: None,
+        };
+        assert_eq!(
+            field.get_mask(),
+            FieldMask::OffsetWidth {
+                offset: SvdConstant { value: 77 },
+                width: Some(SvdConstant { value: 88 })
+            }
+        )
+    }
+    #[test]
+    fn test_mask_lsb_msb() {
+        let field = Field {
+            derived_from: None,
+            dim: None,
+            dim_increment: None,
+            dim_index: None,
+            dim_name: None,
+            dim_array_index: None,
+            name: "".to_string(),
+            description: None,
+            bit_offset: None,
+            bit_width: None,
+            lsb: Some(SvdConstant { value: 77 }),
+            msb: Some(SvdConstant { value: 88 }),
+            bit_range: None,
+            access: None,
+            modified_write_values: None,
+            write_constraint: None,
+            read_action: None,
+            enumerated_values: None,
+        };
+        assert_eq!(
+            field.get_mask(),
+            FieldMask::LsbMsb {
+                lsb: SvdConstant { value: 77 },
+                msb: SvdConstant { value: 88 }
+            }
+        )
     }
 }
