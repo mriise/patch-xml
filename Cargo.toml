@@ -1,6 +1,6 @@
 [package]
 name = "patch-xml"
-version = "0.0.2"
+version = "0.0.3"
 authors = ["Alexander Huymayer"]
 edition = "2018"
 description = "Load and patch xml files. Pre-alpha version. No stable interface until version 0.1.0."

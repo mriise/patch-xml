@@ -235,7 +235,7 @@ impl XmlNode {
                                     }),
                                 )
                             } else {
-                                panic!("Path not found!")
+                                panic!("Path not found! ({:?})", path)
                             }
                         }
                         _ => panic!("More than one XML node is matching the path!"),
