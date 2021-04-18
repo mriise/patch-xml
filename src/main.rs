@@ -1,35 +1,52 @@
-mod patch_processor;
-mod patch_structure;
-mod xml_structure;
-
 use std::env;
 use std::fs::File;
 use std::io::{Read, Write};
 
+struct InputOutput {
+    xml_input_content: String,
+    patch_content: String,
+    result_path: String,
+}
+
+impl InputOutput {
+    fn from_args(args: Vec<String>) -> Result<InputOutput, String> {
+        if args.len() != 4 {
+            return Err(format!(
+                "usage: {} <XML-file> <patch-file (yaml)> <result-file>",
+                args.get(0)
+                    .ok_or("Could not get program path as first argument")?
+            ));
+        }
+
+        let mut xml_file =
+            File::open(args.get(1).ok_or("Could not get XML path")?).map_err(|e| e.to_string())?;
+        let mut xml_input_content = String::new();
+        xml_file
+            .read_to_string(&mut xml_input_content)
+            .map_err(|e| e.to_string())?;
+
+        let mut patch_file = File::open(args.get(2).ok_or("Could not get patch path")?)
+            .map_err(|e| e.to_string())?;
+        let mut patch_content = String::new();
+        patch_file
+            .read_to_string(&mut patch_content)
+            .map_err(|e| e.to_string())?;
+        Ok(InputOutput {
+            xml_input_content,
+            patch_content,
+            result_path: args.get(3).ok_or("Could not get result path")?.clone(),
+        })
+    }
+}
+
 fn main() {
     //ToDo: Implement "Import" functionality
     //ToDo: Increase test coverage to more than 95%
-    let args: Vec<String> = env::args().collect();
-    if args.len() != 4 {
-        eprintln!(
-            "usage: {} <XML-file> <patch-file (yaml)> <result-file>",
-            args.get(0).unwrap()
-        );
-        std::process::exit(1);
-    }
-
-    let mut xml_file = File::open(args.get(1).unwrap()).unwrap();
-    let mut xml_content = String::new();
-    xml_file.read_to_string(&mut xml_content).unwrap();
-    //let mut processor = patch_processor::PatchProcessor::new(&xml_content);
-
-    let mut yaml_file = File::open(args.get(2).unwrap()).unwrap();
-    let mut yaml_content = String::new();
-    yaml_file.read_to_string(&mut yaml_content).unwrap();
-    File::create(args.get(3).unwrap())
+    let input_output = InputOutput::from_args(env::args().collect()).unwrap();
+    File::create(input_output.result_path)
         .unwrap()
         .write_all(
-            patch_xml::patch_xml(xml_content, yaml_content)
+            patch_xml::patch_xml(input_output.xml_input_content, input_output.patch_content)
                 .unwrap()
                 .as_bytes(),
         )
@@ -38,27 +55,16 @@ fn main() {
 
 #[cfg(test)]
 mod tests {
-    use indoc::indoc;
-    use patch_xml::patch_xml;
+    use crate::InputOutput;
 
     #[test]
-    fn test_lib_call() {
-        assert_eq!(
-            patch_xml(
-                r#"<element>Foo</element>"#.to_string(),
-                indoc!(
-                    r#"
-                    element:
-                      Bar"#
-                )
-                .to_string()
-            )
-            .unwrap(),
-            r#"<?xml version="1.0" encoding="UTF-8"?><element>Bar</element>"#.to_string()
-        );
-    }
-    #[test]
-    fn test_lib_call_with_wrong_patch() {
-        assert!(patch_xml(r#"<element></element>"#.to_string(), ":".to_string()).is_err());
+    fn test_input_output() {
+        let _ = InputOutput::from_args(vec![
+            "./program".to_string(),
+            "resources/testfile.txt".to_string(),
+            "resources/testfile.txt".to_string(),
+            "some/path.txt".to_string(),
+        ])
+        .unwrap();
     }
 }

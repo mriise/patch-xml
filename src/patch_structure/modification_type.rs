@@ -1,4 +1,4 @@
-use crate::patch_structure::reference_expression::ReferenceExpression;
+use super::ReferenceExpression;
 use serde::Deserialize;
 use std::hash::{Hash, Hasher};
 

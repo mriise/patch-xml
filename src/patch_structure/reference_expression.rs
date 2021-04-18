@@ -1,5 +1,5 @@
-use crate::patch_structure::refex_segment::{CaptureReference, Segment, SegmentReference};
-use crate::xml_structure::bidirectional_xml_tree::XmlNode;
+use super::super::xml_structure::bidirectional_xml_tree::XmlNode;
+use super::refex_segment::{CaptureReference, Segment, SegmentReference};
 use serde::Deserialize;
 use std::cell::RefCell;
 use std::hash::{Hash, Hasher};
