@@ -118,11 +118,7 @@ impl Field {
             ((None, None), (None, None), Some(pattern)) => {
                 let re = Regex::new(r"\[(?P<msb>(.+)):(?P<lsb>(.+))]").unwrap();
                 let caps = match re.captures(&pattern) {
-                    None => {return Err(format!(
-                        "Invalid format for bit range pattern: Could not match regular expression: {}",
-                        pattern
-                    )
-                        .to_string())}
+                    None => {return Err(format!( "Invalid format for bit range pattern: Could not match regular expression: {}", pattern ).to_string())}
                     Some(caps) => caps
                 };
 
@@ -135,11 +131,7 @@ impl Field {
                     (Ok(msb),Ok(lsb)) => {
                         Ok(FieldMask::LsbMsb { lsb, msb })
                     },
-                    _ => Err(format!(
-                        "Invalid format for bit range pattern: Could not convert msb or lsb in SvdConstant: {}",
-                        pattern
-                    )
-                        .to_string())
+                    _ => Err(format!("Invalid format for bit range pattern: Could not convert msb or lsb in SvdConstant: {}",pattern).to_string())
                 }
             }
             ((None, None), (None, None), None) => Ok(FieldMask::None),
@@ -217,7 +209,9 @@ mod tests {
     #[test]
     fn test_invalid_bitrange_regex() {
         let field = get_field_with_bitrange("invalid pattern");
-        assert!(field.try_to_get_mask().is_err());
+        let result = field.try_to_get_mask();
+        assert!(result.is_err());
+        assert_eq!(result.err().unwrap(), "Invalid format for bit range pattern: Could not match regular expression: invalid pattern")
     }
     #[test]
     fn test_invalid_bitrange_lsb_msb_to_number() {
