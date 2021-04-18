@@ -29,9 +29,7 @@ pub mod output;
 /// # Example
 ///
 /// ```
-/// use patch_svd::get_patched_svd;
-/// use patch_svd::output::Device;
-/// const SPARSE_DEVICE: &str = r#"
+/// let svd = r#"
 ///     <device>
 ///         <schemaVersion>1.0.0</schemaVersion>
 ///         <name>ucName</name>
@@ -61,8 +59,9 @@ pub mod output;
 ///         $modify:
 ///             description: "Some other description"
 ///     "#;
-/// // Load SVD file, patch it and return it as Device structure
-/// let result : Device = get_patched_svd(SPARSE_DEVICE.to_string(), patch.to_string()).unwrap();
+/// // Load SVD content, patch it and return it as Device structure
+/// let result : patch_svd::output::Device =
+///     patch_svd::get_patched_svd(svd.to_string(), patch.to_string()).unwrap();
 /// ```
 pub fn get_patched_svd(
     svd_content: String,

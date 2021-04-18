@@ -15,6 +15,7 @@ jobs:
         env:
           CODECOV_TOKEN: ${{ secrets.CODECOV_TOKEN }}
         run: |
+          rustup default nightly
           cargo install cargo-tarpaulin
           sed 's/^patch-xml = {.*}$/patch-xml = { git = "https:\/\/github.com\/VilNeo\/patch-xml", branch = "main" }/' Cargo.toml > grcov-Cargo.toml
           cp grcov-Cargo.toml Cargo.toml
