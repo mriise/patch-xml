@@ -14,6 +14,9 @@ A sample code that shows the usage of this library is shown below.\
 After that, an introduction to the patch rules is described in detail.
 
 ## How to use patch-xml library
+
+Currently, patch-xml will require the unstable Rust toolchain because the ```external_doc```-feature is used.
+
 ```rust
 use indoc::indoc;
 let original_xml = r#"<element>Foo</element>"#;
