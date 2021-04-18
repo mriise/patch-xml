@@ -1,5 +1,6 @@
 use serde::de::Error;
 use serde::{de, Deserialize};
+use std::num::ParseIntError;
 use std::str::FromStr;
 
 /// An enumeratedValue defines a map between an unsigned integer and a string.
@@ -318,22 +319,31 @@ pub struct SvdConstant {
     pub value: u32,
 }
 
+impl SvdConstant {
+    /// Create SvdConstant from String
+    ///
+    /// The SvdConstant is created from a String. The accepted number formats follow the definitions in the [SVD specification](https://www.keil.com/pack/doc/CMSIS/SVD/html/svd_xml_conventions_gr.html)
+    pub fn from_string(value: String) -> Result<Self, ParseIntError> {
+        let result = if value.to_ascii_lowercase().starts_with("#") {
+            u32::from_str_radix(&value.to_string()[1..], 2)
+        } else if value.to_ascii_lowercase().starts_with("0x") {
+            u32::from_str_radix(&value.to_string()[2..], 16)
+        } else {
+            u32::from_str(value.as_str())
+        };
+        match result {
+            Ok(result) => Ok(SvdConstant { value: result }),
+            Err(err) => Err(err),
+        }
+    }
+}
+
 impl<'de> de::Deserialize<'de> for SvdConstant {
     fn deserialize<D>(deserializer: D) -> Result<SvdConstant, D::Error>
     where
         D: de::Deserializer<'de>,
     {
         let value = String::deserialize(deserializer)?;
-        let result = if value.to_ascii_lowercase().starts_with("#") {
-            u32::from_str_radix(&value.to_string()[1..], 2).map_err(D::Error::custom)
-        } else if value.to_ascii_lowercase().starts_with("0x") {
-            u32::from_str_radix(&value.to_string()[2..], 16).map_err(D::Error::custom)
-        } else {
-            u32::from_str(value.as_str()).map_err(D::Error::custom)
-        };
-        match result {
-            Ok(result) => Ok(SvdConstant { value: result }),
-            Err(err) => Err(err),
-        }
+        SvdConstant::from_string(value).map_err(D::Error::custom)
     }
 }

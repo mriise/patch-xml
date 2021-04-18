@@ -82,6 +82,21 @@ pub struct Peripheral {
     pub registers: Option<Registers>,
 }
 
+impl Peripheral {
+    /// Run a check on the peripheral datastructure after it was loaded via Serde
+    pub fn post_check(&self) -> Result<(), String> {
+        match &self.registers {
+            None => {}
+            Some(r) => {
+                for register in &r.register {
+                    register.post_check()?;
+                }
+            }
+        }
+        Ok(())
+    }
+}
+
 /// All registers of a peripheral are enclosed between the Registers element.
 ///
 /// Clusters define a set of registers. You can either use the <cluster> or the <register> element.

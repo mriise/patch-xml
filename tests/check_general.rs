@@ -10,6 +10,17 @@ fn test_unpatched_sparse_device() {
 }
 
 #[test]
+fn test_incomplete_device() {
+    let patch = r#"
+    device:
+        $modify:
+            peripherals: ~
+        "#;
+    let result = get_patched_svd(utils::SPARSE_DEVICE.to_string(), patch.to_string());
+    assert!(result.is_err());
+}
+
+#[test]
 fn test_wrong_svd_constant() {
     use serde::Deserialize;
     #[derive(Deserialize, Clone, Debug, Eq, PartialEq)]

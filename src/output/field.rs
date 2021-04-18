@@ -3,6 +3,7 @@ use super::{
     WriteConstraint,
 };
 use crate::output::{DimArrayIndex, SvdConstant};
+use regex::Regex;
 use serde::Deserialize;
 
 /// All fields of a register are enclosed between the <fields> opening and closing tags.
@@ -50,8 +51,8 @@ pub struct Field {
     pub lsb: Option<SvdConstant>,
     /// Value defining the bit position of the most significant bit within the register.
     pub msb: Option<SvdConstant>,
-    /// A string in the format: "\[<msb>:<lsb>\]"
-    pub bit_range: Option<SvdConstant>,
+    /// A string in the format: ```[<msb>:<lsb>]```
+    pub bit_range: Option<String>,
     /// Predefined strings set the access type.
     ///
     /// The element can be omitted if access rights get inherited from parent elements.
@@ -68,6 +69,98 @@ pub struct Field {
     pub read_action: Option<ReadAction>,
     /// Next lower level of description.
     pub enumerated_values: Option<Vec<EnumeratedValues>>,
+}
+
+/// The mask of a field
+///
+/// The mask of a field with its individual configurations
+/// The specific values like bit_offset and bit_width require a concrete setup.
+/// This enum representates all allowed occurance variants of these specific values.
+pub enum FieldMask {
+    /// A combination of mask offset and mask width
+    OffsetWidth {
+        /// The offset of the mask
+        offset: SvdConstant,
+        /// The width of the mask
+        width: Option<SvdConstant>,
+    },
+    /// A combination of mask LSB and mask MSB
+    LsbMsb {
+        /// The least significant bit of the mask
+        lsb: SvdConstant,
+        /// The most significant bit of the mask
+        msb: SvdConstant,
+    },
+    /// No mask was defined
+    None,
+}
+
+impl Field {
+    /// Get the mask of the field
+    pub fn get_mask(&self) -> FieldMask {
+        self.try_to_get_mask().unwrap()
+    }
+    fn try_to_get_mask(&self) -> Result<FieldMask, String> {
+        match (
+            (&self.bit_offset, &self.bit_width),
+            (&self.lsb, &self.msb),
+            &self.bit_range,
+        ) {
+            ((Some(offset), width), (None, None), None) => Ok(FieldMask::OffsetWidth {
+                offset: offset.clone(),
+                width: width.clone(),
+            }),
+            ((None, None), (Some(lsb), Some(msb)), None) => Ok(FieldMask::LsbMsb {
+                lsb: lsb.clone(),
+                msb: msb.clone(),
+            }),
+            ((None, None), (None, None), Some(pattern)) => {
+                let re = Regex::new(r"\[(?P<msb>(.+)):(?P<lsb>(.+))]").unwrap();
+                let caps = match re.captures(&pattern) {
+                    None => {return Err(format!(
+                        "Invalid format for bit range pattern: Could not match regular expression: {}",
+                        pattern
+                    )
+                        .to_string())}
+                    Some(caps) => caps
+                };
+
+                let msb = caps.name("msb");
+                let lsb = caps.name("lsb");
+
+                let (msb, lsb) = match (msb, lsb) {
+                    (Some(msb), Some(lsb)) => {
+                        (SvdConstant::from_string(msb.as_str().to_string()),
+                         SvdConstant::from_string(lsb.as_str().to_string()))
+                    }
+                    _ => return Err(format!(
+                        "Invalid format for bit range pattern: Could not find msb and lsb in pattern: {}",
+                        pattern
+                    ).to_string())
+                };
+
+                match (msb, lsb) {
+                    (Ok(msb),Ok(lsb)) => {
+                        Ok(FieldMask::LsbMsb { lsb, msb })
+                    },
+                    _ => Err(format!(
+                        "Invalid format for bit range pattern: Could not convert msb or lsb in SvdConstant: {}",
+                        pattern
+                    )
+                        .to_string())
+                }
+            }
+            ((None, None), (None, None), None) => Ok(FieldMask::None),
+            _ => Err(format!("Invalid mask setup: bit_offset: {:?}, bit_width: {:?}, lsb: {:?}, msb: {:?}, bit_range: {:?}", self.bit_offset, self.bit_width,
+                     self.lsb, self.msb,
+                     self.bit_range).to_string()),
+        }
+    }
+    /// Run a check on the field datastructure after it was loaded via Serde
+    pub fn post_check(&self) -> Result<(), String> {
+        self.try_to_get_mask()?;
+        Ok(())
+    }
 }
 
 /// The concept of enumerated values creates a map between unsigned integers and an identifier string.
@@ -101,4 +194,69 @@ pub struct EnumeratedValues {
     ///
     /// The number of required items depends on the bit-width of the associated field.
     pub enumerated_value: Vec<EnumeratedValue>,
+}
+
+#[cfg(test)]
+mod tests {
+    use crate::output::{Field, FieldMask};
+    fn get_field_with_bitrange(bit_range: &str) -> Field {
+        Field {
+            derived_from: None,
+            dim: None,
+            dim_increment: None,
+            dim_index: None,
+            dim_name: None,
+            dim_array_index: None,
+            name: "".to_string(),
+            description: None,
+            bit_offset: None,
+            bit_width: None,
+            lsb: None,
+            msb: None,
+            bit_range: Some(bit_range.to_string()),
+            access: None,
+            modified_write_values: None,
+            write_constraint: None,
+            read_action: None,
+            enumerated_values: None,
+        }
+    }
+
+    #[test]
+    fn test_invalid_bitrange_regex() {
+        let field = get_field_with_bitrange("invalid pattern");
+        assert!(field.try_to_get_mask().is_err());
+    }
+    #[test]
+    fn test_invalid_bitrange_lsb_msb_to_number() {
+        let field = get_field_with_bitrange("[an:345]");
+        assert!(field.try_to_get_mask().is_err());
+    }
+    #[test]
+    fn test_no_mask_at_all() {
+        let field = Field {
+            derived_from: None,
+            dim: None,
+            dim_increment: None,
+            dim_index: None,
+            dim_name: None,
+            dim_array_index: None,
+            name: "".to_string(),
+            description: None,
+            bit_offset: None,
+            bit_width: None,
+            lsb: None,
+            msb: None,
+            bit_range: None,
+            access: None,
+            modified_write_values: None,
+            write_constraint: None,
+            read_action: None,
+            enumerated_values: None,
+        };
+        match field.get_mask() {
+            FieldMask::None => {}
+            _ => panic!("Expected None-FieldMask"),
+        }
+    }
 }

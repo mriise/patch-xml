@@ -86,6 +86,21 @@ pub struct Register {
     pub fields: Option<Fields>,
 }
 
+impl Register {
+    /// Run a check on the register datastructure after it was loaded via Serde
+    pub fn post_check(&self) -> Result<(), String> {
+        match &self.fields {
+            None => {}
+            Some(f) => {
+                for field in &f.field {
+                    field.post_check()?;
+                }
+            }
+        }
+        Ok(())
+    }
+}
+
 /// Grouping element to define bit-field properties of a register.
 #[derive(Debug, Deserialize, Clone, Eq, PartialEq)]
 #[serde(rename_all = "camelCase")]

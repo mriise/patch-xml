@@ -68,5 +68,13 @@ pub fn get_patched_svd(
     patch_content: String,
 ) -> Result<output::Device, serde_xml_rs::Error> {
     let patched_svd = patch_xml::patch_xml(svd_content, patch_content);
-    serde_xml_rs::from_reader(patched_svd.unwrap().as_bytes())
+    let result: Result<output::Device, serde_xml_rs::Error> =
+        serde_xml_rs::from_reader(patched_svd.unwrap().as_bytes());
+    match result {
+        Ok(device) => match device.post_check() {
+            Ok(()) => Ok(device),
+            Err(e) => Err(serde_xml_rs::Error::Custom { field: e }),
+        },
+        Err(e) => Err(e),
+    }
 }

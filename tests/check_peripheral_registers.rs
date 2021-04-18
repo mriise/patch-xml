@@ -102,9 +102,6 @@ fn test_patched_register() {
                                     - description: Field Description
                                     - bitOffset: 131
                                     - bitWidth: 132
-                                    - lsb: 133
-                                    - msb: 134
-                                    - bitRange: 135
                                     - access: writeOnce
                                     - modifiedWriteValues: set
                                     - writeConstraint:
@@ -134,11 +131,8 @@ fn test_patched_register() {
                                                 value: 17
                                 - +field:
                                     name: Field2
-                                    bitOffset: 221
-                                    bitWidth: 222
                                     lsb: 223
                                     msb: 224
-                                    bitRange: 225
                                     enumeratedValues:
                                         usage: Read
                                         enumeratedValue:
@@ -149,10 +143,6 @@ fn test_patched_register() {
                                 - +field:
                                     name: Field3
                                     bitOffset: 331
-                                    bitWidth: 332
-                                    lsb: 333
-                                    msb: 334
-                                    bitRange: 335
                                     enumeratedValues:
                                         usage: Read
                                         enumeratedValue:
@@ -162,11 +152,7 @@ fn test_patched_register() {
                                                 value: 77
                                 - +field:
                                     name: Field4
-                                    bitOffset: 441
-                                    bitWidth: 442
-                                    lsb: 443
-                                    msb: 444
-                                    bitRange: 445
+                                    bitRange: "\\[15:2\\]"
                                     enumeratedValues:
                                         usage: Write
                                         enumeratedValue:
@@ -228,9 +214,9 @@ fn test_patched_register() {
                             description: Some("Field Description".to_string()),
                             bit_offset: Some(SvdConstant { value: 131 }),
                             bit_width: Some(SvdConstant { value: 132 }),
-                            lsb: Some(SvdConstant { value: 133 }),
-                            msb: Some(SvdConstant { value: 134 }),
-                            bit_range: Some(SvdConstant { value: 135 }),
+                            lsb: None,
+                            msb: None,
+                            bit_range: None,
                             access: Some(AccessType::WriteOnce),
                             modified_write_values: Some(ModifiedWriteValues::Set),
                             write_constraint: Some(WriteConstraint::Range {
@@ -274,11 +260,11 @@ fn test_patched_register() {
                             dim_array_index: None,
                             name: "Field2".to_string(),
                             description: None,
-                            bit_offset: Some(SvdConstant { value: 221 }),
-                            bit_width: Some(SvdConstant { value: 222 }),
+                            bit_offset: None,
+                            bit_width: None,
                             lsb: Some(SvdConstant { value: 223 }),
                             msb: Some(SvdConstant { value: 224 }),
-                            bit_range: Some(SvdConstant { value: 225 }),
+                            bit_range: None,
                             access: None,
                             modified_write_values: None,
                             write_constraint: None,
@@ -305,10 +291,10 @@ fn test_patched_register() {
                             name: "Field3".to_string(),
                             description: None,
                             bit_offset: Some(SvdConstant { value: 331 }),
-                            bit_width: Some(SvdConstant { value: 332 }),
-                            lsb: Some(SvdConstant { value: 333 }),
-                            msb: Some(SvdConstant { value: 334 }),
-                            bit_range: Some(SvdConstant { value: 335 }),
+                            bit_width: None,
+                            lsb: None,
+                            msb: None,
+                            bit_range: None,
                             access: None,
                             modified_write_values: None,
                             write_constraint: None,
@@ -334,11 +320,11 @@ fn test_patched_register() {
                             dim_array_index: None,
                             name: "Field4".to_string(),
                             description: None,
-                            bit_offset: Some(SvdConstant { value: 441 }),
-                            bit_width: Some(SvdConstant { value: 442 }),
-                            lsb: Some(SvdConstant { value: 443 }),
-                            msb: Some(SvdConstant { value: 444 }),
-                            bit_range: Some(SvdConstant { value: 445 }),
+                            bit_offset: None,
+                            bit_width: None,
+                            lsb: None,
+                            msb: None,
+                            bit_range: Some("[15:2]".to_string()),
                             access: None,
                             modified_write_values: None,
                             write_constraint: None,

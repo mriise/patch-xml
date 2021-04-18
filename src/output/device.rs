@@ -66,6 +66,19 @@ pub struct Device {
     pub peripherals: Peripherals,
 }
 
+impl Device {
+    /// Perform a check after structure loading
+    ///
+    /// Since not all requirements for the SVD specification can be checked during Serde deserialization, an additional postprocessing check is available here.
+    /// Some more complex requirements are checked here e.g. the mask configuration of the fields.
+    pub fn post_check(&self) -> Result<(), String> {
+        for peripheral in &self.peripherals.peripheral {
+            peripheral.post_check()?;
+        }
+        Ok(())
+    }
+}
+
 /// The CPU section describes the processor included in the microcontroller device.
 ///
 /// This section is mandatory if the SVD file is used to generate the device header file.
