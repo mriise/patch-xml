@@ -16,6 +16,7 @@ After that, an introduction to the patch rules is described in detail.
 ## How to use patch-xml library
 
 Currently, patch-xml will require the unstable Rust toolchain because the ```external_doc```-feature is used.
+The current state of this feature depends on [this pull request](https://github.com/rust-lang/rust/pull/83366).
 
 ```rust
 use indoc::indoc;
